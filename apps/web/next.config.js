@@ -1,8 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // 移除实验性功能以确保稳定部署
+  // 基础配置
   images: {
     domains: [],
+    unoptimized: false,
   },
   // 性能优化
   compiler: {
@@ -30,8 +31,6 @@ const nextConfig = {
       },
     ];
   },
-  // 输出配置
-  output: 'standalone',
 }
 
 module.exports = nextConfig 
