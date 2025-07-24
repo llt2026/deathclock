@@ -1,0 +1,38 @@
+{
+  "name": "death-clock",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "next dev -w apps/web",
+    "build": "turbo run build --filter apps/web",
+    "lint": "turbo run lint"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@types/node": "^24.1.0",
+    "turbo": "^2.5.5",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@paypal/react-paypal-js": "^8.8.3",
+    "@supabase/supabase-js": "^2.52.0",
+    "@types/pg": "^8.15.4",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vercel/analytics": "^1.5.0",
+    "drizzle-kit": "^0.31.4",
+    "drizzle-orm": "^0.44.3",
+    "next": "^15.4.3",
+    "pg": "^8.16.3",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "zustand": "^5.0.6"
+  }
+}
