@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "../../store/auth";
 
@@ -8,6 +8,17 @@ export default function SettingsScreen() {
   const { user, signOut } = useAuthStore();
   const [isExporting, setIsExporting] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [analyticsEnabled, setAnalyticsEnabled] = useState(true);
+  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+    if (typeof window !== 'undefined') {
+      setAnalyticsEnabled(localStorage.getItem('analytics_enabled') !== 'false');
+      setEmailNotifications(localStorage.getItem('email_notifications') !== 'false');
+    }
+  }, []);
 
   const handleExportData = async () => {
     setIsExporting(true);
@@ -19,11 +30,11 @@ export default function SettingsScreen() {
           email: user?.email,
           created_at: user?.created_at,
         },
-        predictions: [], // 从 localStorage 或 API 获取
-        settings: {
-          theme: localStorage.getItem('theme') || 'dark',
-          notifications: localStorage.getItem('notifications') !== 'false',
-        },
+                 predictions: [], // 从 localStorage 或 API 获取
+         settings: {
+           theme: isClient ? (localStorage.getItem('theme') || 'dark') : 'dark',
+           notifications: isClient ? (localStorage.getItem('notifications') !== 'false') : true,
+         },
         exported_at: new Date().toISOString(),
       };
 
@@ -58,9 +69,9 @@ export default function SettingsScreen() {
       // 调用删除账户 API
       const response = await fetch('/api/account/delete', {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-        },
+                 headers: {
+           'Authorization': `Bearer ${isClient ? localStorage.getItem('auth_token') : ''}`,
+         },
       });
 
              if (response.ok) {
@@ -139,9 +150,12 @@ export default function SettingsScreen() {
                 <input
                   type="checkbox"
                   className="sr-only peer"
-                  defaultChecked={localStorage.getItem('analytics_enabled') !== 'false'}
+                  checked={analyticsEnabled}
                   onChange={(e) => {
-                    localStorage.setItem('analytics_enabled', e.target.checked.toString());
+                    setAnalyticsEnabled(e.target.checked);
+                    if (isClient) {
+                      localStorage.setItem('analytics_enabled', e.target.checked.toString());
+                    }
                   }}
                 />
                 <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
@@ -157,9 +171,12 @@ export default function SettingsScreen() {
                 <input
                   type="checkbox"
                   className="sr-only peer"
-                  defaultChecked={localStorage.getItem('email_notifications') !== 'false'}
+                  checked={emailNotifications}
                   onChange={(e) => {
-                    localStorage.setItem('email_notifications', e.target.checked.toString());
+                    setEmailNotifications(e.target.checked);
+                    if (isClient) {
+                      localStorage.setItem('email_notifications', e.target.checked.toString());
+                    }
                   }}
                 />
                 <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
