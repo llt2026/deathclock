@@ -1,8 +1,8 @@
 "use client";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 
-export default function SubscribeFailScreen() {
+function SubscribeFailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [debugId, setDebugId] = useState<string | null>(null);
@@ -16,7 +16,7 @@ export default function SubscribeFailScreen() {
       <div className="text-6xl mb-4">❌</div>
       
       <div className="max-w-md">
-        <h1 className="text-3xl font-display mb-4 text-primary">Subscription Failed</h1>
+        <h1 className="text-3xl font-display text-primary mb-4">Subscription Failed</h1>
         
         <div className="bg-red-900/20 border border-red-800 rounded-lg p-4 mb-6">
           <p className="text-red-200 mb-2">
@@ -75,5 +75,18 @@ export default function SubscribeFailScreen() {
         </p>
       </div>
     </main>
+  );
+}
+
+export default function SubscribeFailScreen() {
+  return (
+    <Suspense fallback={
+      <main className="flex flex-col items-center justify-center min-h-screen gap-6 px-4 text-center">
+        <div className="text-6xl mb-4">⏳</div>
+        <div className="text-xl">Loading...</div>
+      </main>
+    }>
+      <SubscribeFailContent />
+    </Suspense>
   );
 } 
