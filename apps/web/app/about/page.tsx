@@ -1,8 +1,3 @@
-export const metadata = {
-  title: "About | More Minutes",
-  description: "Learn about More Minutes and our mission to help you live more meaningfully",
-};
-
 "use client";
 import { useRouter } from "next/navigation";
 

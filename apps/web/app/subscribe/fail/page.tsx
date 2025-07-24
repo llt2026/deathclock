@@ -1,8 +1,3 @@
-export const metadata = {
-  title: "Subscription Failed | More Minutes",
-  description: "Your subscription could not be processed",
-};
-
 "use client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";

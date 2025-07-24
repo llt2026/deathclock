@@ -1,8 +1,3 @@
-export const metadata = {
-  title: "Settings | More Minutes",
-  description: "Manage your account preferences and privacy settings",
-};
-
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -11,58 +6,76 @@ import { useAuthStore } from "../../store/auth";
 export default function SettingsScreen() {
   const router = useRouter();
   const { user, signOut } = useAuthStore();
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [isExporting, setIsExporting] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
-  const exportData = async () => {
+  const handleExportData = async () => {
     setIsExporting(true);
+    
     try {
-      // 模拟数据导出
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const exportData = {
-        user: user,
-        predictions: [], // 从API获取
-        vaultItems: [], // 从API获取
-        exportDate: new Date().toISOString(),
+      // 收集用户数据
+      const userData = {
+        profile: {
+          email: user?.email,
+          created_at: user?.created_at,
+        },
+        predictions: [], // 从 localStorage 或 API 获取
+        settings: {
+          theme: localStorage.getItem('theme') || 'dark',
+          notifications: localStorage.getItem('notifications') !== 'false',
+        },
+        exported_at: new Date().toISOString(),
       };
-      
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-        type: "application/json",
+
+      // 创建下载
+      const blob = new Blob([JSON.stringify(userData, null, 2)], {
+        type: 'application/json',
       });
-      
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = url;
-      a.download = `moreminutes-data-${new Date().getTime()}.json`;
+      a.download = `moreminutes-data-${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
-      alert("Your data has been exported successfully!");
     } catch (error) {
-      console.error("Export failed:", error);
-      alert("Failed to export data. Please try again.");
-    } finally {
-      setIsExporting(false);
+      console.error('Export failed:', error);
+      alert('Export failed. Please try again.');
     }
+    
+    setIsExporting(false);
   };
 
-  const deleteAccount = async () => {
-    try {
-      // TODO: 实际的账号删除API调用
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      alert("Account deletion initiated. You will receive a confirmation email.");
-      await signOut();
-      router.push("/");
-    } catch (error) {
-      console.error("Account deletion failed:", error);
-      alert("Failed to delete account. Please contact support.");
+  const handleDeleteAccount = async () => {
+    if (!confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+      return;
     }
+
+    setIsDeletingAccount(true);
+    
+    try {
+      // 调用删除账户 API
+      const response = await fetch('/api/account/delete', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+      });
+
+             if (response.ok) {
+         await signOut();
+         router.push('/');
+         alert('Account deleted successfully.');
+      } else {
+        throw new Error('Delete failed');
+      }
+    } catch (error) {
+      console.error('Account deletion failed:', error);
+      alert('Account deletion failed. Please contact support.');
+    }
+    
+    setIsDeletingAccount(false);
   };
 
   return (
@@ -70,169 +83,208 @@ export default function SettingsScreen() {
       <div className="mb-6">
         <button
           onClick={() => router.back()}
-          className="text-accent hover:text-white mb-4 transition"
+          className="text-accent hover:text-white transition mb-4"
         >
           ← Back
         </button>
-        <h1 className="text-3xl font-display mb-2">Settings</h1>
-        <p className="text-accent">Manage your preferences and account</p>
+        <h1 className="text-3xl font-display text-primary mb-2">Settings</h1>
+        <p className="text-accent">Manage your account and preferences</p>
       </div>
 
-      {/* User Info */}
-      <section className="bg-gray-900 rounded-lg p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-4">Account Information</h2>
-        <div className="space-y-3">
-          <div className="flex justify-between">
-            <span className="text-accent">Email:</span>
-            <span>{user?.email || "guest@example.com"}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-accent">Status:</span>
-            <span className="text-success">Free Plan</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-accent">Member since:</span>
-            <span>January 2025</span>
-          </div>
-        </div>
-      </section>
-
-      {/* Preferences */}
-      <section className="bg-gray-900 rounded-lg p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-4">Preferences</h2>
-        
-        <div className="space-y-6">
-          {/* Theme */}
-          <div className="flex justify-between items-center">
+      <div className="space-y-6">
+        {/* Account Info */}
+        <section className="bg-gray-900 rounded-lg p-6">
+          <h2 className="text-xl font-semibold mb-4 text-white">Account Information</h2>
+          <div className="space-y-3">
             <div>
-              <h3 className="font-medium">Theme</h3>
-              <p className="text-sm text-accent">Choose your display preference</p>
+              <label className="block text-sm text-accent mb-1">Email</label>
+              <p className="text-white">{user?.email || 'Not signed in'}</p>
             </div>
-            <select
-              value={theme}
-              onChange={(e) => setTheme(e.target.value as "dark" | "light")}
-              className="bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white"
-            >
-              <option value="dark">Dark</option>
-              <option value="light">Light</option>
-            </select>
-          </div>
-
-          {/* Sound */}
-          <div className="flex justify-between items-center">
             <div>
-              <h3 className="font-medium">Countdown Sounds</h3>
-              <p className="text-sm text-accent">Heart beat sound effects</p>
+              <label className="block text-sm text-accent mb-1">Member Since</label>
+              <p className="text-white">
+                {user?.created_at 
+                  ? new Date(user.created_at).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })
+                  : 'Guest User'
+                }
+              </p>
             </div>
-            <button
-              onClick={() => setSoundEnabled(!soundEnabled)}
-              className={`w-12 h-6 rounded-full transition ${
-                soundEnabled ? "bg-success" : "bg-gray-600"
-              }`}
-            >
-              <div
-                className={`w-5 h-5 bg-white rounded-full transition-transform ${
-                  soundEnabled ? "translate-x-6" : "translate-x-1"
-                }`}
-              />
-            </button>
+            <div>
+              <label className="block text-sm text-accent mb-1">Subscription Status</label>
+              <p className="text-white">Free User</p>
+              <button
+                onClick={() => router.push('/subscribe')}
+                className="text-primary hover:underline text-sm mt-1"
+              >
+                Upgrade to Pro →
+              </button>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Algorithm Disclosure */}
-      <section className="bg-gray-900 rounded-lg p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-4">Algorithm Disclosure</h2>
-        <div className="text-sm text-accent space-y-2">
-          <p>
-            <strong>Data Source:</strong> U.S. Social Security Administration 2022 Period Life Table
-          </p>
-          <p>
-            <strong>Method:</strong> Gompertz mortality model with randomization parameters (b=0.000045, c=1.098)
-          </p>
-          <p>
-            <strong>Privacy:</strong> All calculations run locally in your browser. No health data is transmitted.
-          </p>
-          <p>
-            <strong>Disclaimer:</strong> For entertainment purposes only. Not medical advice.
-          </p>
-        </div>
-      </section>
-
-      {/* Data & Privacy */}
-      <section className="bg-gray-900 rounded-lg p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-4">Data & Privacy</h2>
-        
-        <div className="space-y-4">
-          <button
-            onClick={exportData}
-            disabled={isExporting}
-            className="w-full p-3 bg-gray-800 text-left rounded-lg hover:bg-gray-700 transition disabled:opacity-50"
-          >
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="font-medium">Export Your Data</h3>
-                <p className="text-sm text-accent">Download all your data as JSON</p>
-              </div>
-              <span className="text-2xl">📥</span>
-            </div>
-          </button>
-
-          <button
-            onClick={() => router.push("/legal")}
-            className="w-full p-3 bg-gray-800 text-left rounded-lg hover:bg-gray-700 transition"
-          >
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="font-medium">Privacy Policy</h3>
-                <p className="text-sm text-accent">View our privacy policy</p>
-              </div>
-              <span className="text-2xl">📋</span>
-            </div>
-          </button>
-        </div>
-      </section>
-
-      {/* Danger Zone */}
-      <section className="bg-red-900/20 border border-red-800 rounded-lg p-6">
-        <h2 className="text-xl font-semibold mb-4 text-red-400">Danger Zone</h2>
-        
-        {!showDeleteConfirm ? (
-          <button
-            onClick={() => setShowDeleteConfirm(true)}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-          >
-            Delete Account
-          </button>
-        ) : (
+        {/* Privacy Settings */}
+        <section className="bg-gray-900 rounded-lg p-6">
+          <h2 className="text-xl font-semibold mb-4 text-white">Privacy & Security</h2>
           <div className="space-y-4">
-            <div className="text-sm text-red-300">
-              <p>⚠️ This action cannot be undone. This will permanently:</p>
-              <ul className="list-disc list-inside mt-2 space-y-1">
-                <li>Delete your account and profile</li>
-                <li>Remove all your Legacy Vault items</li>
-                <li>Cancel any active subscriptions</li>
-                <li>Erase all prediction history</li>
-              </ul>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-white font-medium">Analytics Tracking</h3>
+                <p className="text-accent text-sm">Help us improve the app with anonymous usage data</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  defaultChecked={localStorage.getItem('analytics_enabled') !== 'false'}
+                  onChange={(e) => {
+                    localStorage.setItem('analytics_enabled', e.target.checked.toString());
+                  }}
+                />
+                <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+              </label>
             </div>
             
-            <div className="flex gap-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-white font-medium">Email Notifications</h3>
+                <p className="text-accent text-sm">Receive updates about new features and security</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  defaultChecked={localStorage.getItem('email_notifications') !== 'false'}
+                  onChange={(e) => {
+                    localStorage.setItem('email_notifications', e.target.checked.toString());
+                  }}
+                />
+                <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+              </label>
+            </div>
+          </div>
+        </section>
+
+        {/* Algorithm Transparency */}
+        <section className="bg-gray-900 rounded-lg p-6">
+          <h2 className="text-xl font-semibold mb-4 text-white">Algorithm Transparency</h2>
+          <div className="space-y-4 text-gray-300">
+            <div>
+              <h3 className="text-white font-medium mb-2">Data Source</h3>
+              <p className="text-sm">
+                Life expectancy calculations use the U.S. Social Security Administration's 2022 Period Life Table,
+                which provides population-level mortality statistics and is in the public domain.
+              </p>
+            </div>
+            
+            <div>
+              <h3 className="text-white font-medium mb-2">Methodology</h3>
+              <p className="text-sm">
+                We apply the Gompertz mortality model with parameters calibrated to SSA data (b=0.000045, c=1.098).
+                A deterministic seed based on your profile ensures consistent results across sessions.
+              </p>
+            </div>
+            
+            <div>
+              <h3 className="text-white font-medium mb-2">Privacy-First Design</h3>
+              <p className="text-sm">
+                All calculations are performed locally in your browser. Health data and risk factors
+                never leave your device or get transmitted to our servers.
+              </p>
+            </div>
+            
+            <div className="bg-red-900/20 border border-red-800 rounded p-3">
+              <p className="text-red-200 text-sm">
+                <strong>Remember:</strong> These are statistical estimates for entertainment only.
+                They do not constitute medical advice and should not influence important life decisions.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Data Management */}
+        <section className="bg-gray-900 rounded-lg p-6">
+          <h2 className="text-xl font-semibold mb-4 text-white">Data Management</h2>
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-white font-medium mb-2">Export Your Data</h3>
+              <p className="text-accent text-sm mb-3">
+                Download all your personal data in JSON format
+              </p>
               <button
-                onClick={deleteAccount}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                onClick={handleExportData}
+                disabled={isExporting}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Yes, Delete Everything
+                {isExporting ? 'Exporting...' : 'Export Data'}
               </button>
+            </div>
+            
+            <div className="border-t border-gray-700 pt-4">
+              <h3 className="text-white font-medium mb-2">Delete Account</h3>
+              <p className="text-accent text-sm mb-3">
+                Permanently delete your account and all associated data. This action cannot be undone.
+              </p>
               <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
+                onClick={handleDeleteAccount}
+                disabled={isDeletingAccount}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Cancel
+                {isDeletingAccount ? 'Deleting...' : 'Delete Account'}
               </button>
             </div>
           </div>
+        </section>
+
+        {/* Support */}
+        <section className="bg-gray-900 rounded-lg p-6">
+          <h2 className="text-xl font-semibold mb-4 text-white">Support</h2>
+          <div className="space-y-3">
+            <div>
+              <h3 className="text-white font-medium">Need Help?</h3>
+              <p className="text-accent text-sm">
+                Contact us at{' '}
+                <a href="mailto:support@moreminutes.life" className="text-primary hover:underline">
+                  support@moreminutes.life
+                </a>
+              </p>
+            </div>
+            
+            <div>
+              <h3 className="text-white font-medium">Privacy Questions?</h3>
+              <p className="text-accent text-sm">
+                Email our privacy team at{' '}
+                <a href="mailto:privacy@moreminutes.life" className="text-primary hover:underline">
+                  privacy@moreminutes.life
+                </a>
+              </p>
+            </div>
+            
+            <div>
+              <h3 className="text-white font-medium">Version</h3>
+              <p className="text-accent text-sm">More Minutes v1.0.0</p>
+            </div>
+          </div>
+        </section>
+
+        {/* Sign Out */}
+        {user && (
+          <section className="bg-gray-900 rounded-lg p-6">
+            <button
+                             onClick={async () => {
+                 await signOut();
+                 router.push('/');
+               }}
+              className="w-full px-4 py-3 bg-gray-700 text-white rounded hover:bg-gray-600 transition"
+            >
+              Sign Out
+            </button>
+          </section>
         )}
-      </section>
+      </div>
     </main>
   );
 } 

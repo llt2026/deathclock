@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "next dev -w apps/web",
-    "build": "turbo run build --filter apps/web",
+    "build": "turbo run build --filter @moreminutes/web",
     "lint": "turbo run lint"
   },
   "keywords": [],

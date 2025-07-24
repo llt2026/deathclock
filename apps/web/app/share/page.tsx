@@ -1,8 +1,3 @@
-export const metadata = {
-  title: "Share Your Journey | More Minutes",
-  description: "Share your life countdown and longevity progress with friends",
-};
-
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
