@@ -1,0 +1,263 @@
+More Minutes + Legacy Vault – 完整产品规格书
+版本 v1.0 – 2025‑07‑18 域名 moreminutes.life
+________________________________________
+0. 摘要 / 核心定位
+差异化：10 秒超轻量预测 + 实时倒计时，可一键截图分享；内置 Legacy Vault（数字遗嘱 & 延迟投递）与“延寿即时反馈”功能，完全离线计算，强化隐私。
+目标用户：18‑34 岁美区 Gen‑Z & Millennials，关注死亡议题、数字资产与健康长寿。
+情绪路径：恐惧 → 好奇 → 看到延寿条上涨 → 希望 → 订阅深度功能。
+商业模式：Freemium；订阅 $3.99/mo 或 $19.99/yr；Pro 解锁无限延寿模拟、Legacy Vault 容量 1 GB、专属主题等。
+________________________________________
+1. 竞争分析 / 痛点映射
+维度	头部 Death Clock AI	           我们	                              痛点命中
+上手时长	问卷 25 题	生日+两勾选，   10 秒	                              注意力不足，想快速获得结果
+产出形式	静态日期	                     实时秒级倒计时 + 可增减延寿条	需要可截图的视觉锤
+情绪转化	恐惧→建议	     恐惧→希望（绿色延寿条）	               减轻负面，增强行动动力
+附加价值	健康打卡	                     Legacy Vault 数字遗嘱	               年轻人无从准备数字身后事
+隐私	云端上传问卷	     本地计算 + 离线存储	              数据安全焦虑
+文化叙事	单纯西方长寿	+ 东方五行禅意语录	新鲜度 & Apple 4.3(b) 差异化
+________________________________________
+2. 功能范围
+模块	MVP 第一阶段	
+Lightning Prediction	✅
+Live Countdown	✅
+Longevity Nudge	✅
+Legacy Vault	✅（≤5 min 留言，AES‑256 客端加密,用户自设 4-6 位 PIN → PBKDF2 派生密钥:首次上传 Vault 时弹出 “Set PIN” 对话框（4-6 位数字），客端 crypto.subtle.importKey → PBKDF2 (salt = user.uid) → 得到 256-bit key。加密文件后仅保存 加盐随机 IV + ciphertext。PIN 不入库，只存浏览器 LocalStorage（可选 iCloud Keychain 同步），RLS 无须改动；上传流程不变。）
+ShareCenter（对应页面 /share）	✅ 结果 / 延寿 / 里程碑 图 & MP4 生成，短链跳转
+订阅流程	✅ PayPal Smart Buttons, 入口页 /subscribe 由 SubscribePage 组件负责；新增成功/失败页 (/subscribe/success, /subscribe/fail)
+管理后台 v1	✅ 用户 / 订阅 / Vault / 邮件 / 操作日志 / 管理员管理
+邮件系统 (resend)	✅ Magic Link、欢迎邮件、Vault 通知；发件域名 mail.moreminutes.life
+分析埋点	✅ Vercel Analytics、TikTok Events API
+异常场景处理	✅ 网络离线、支付失败、上传失败指引
+国际化 (i18n)	–（默认英文）
+________________________________________
+3. 技术栈 & 架构（PWA 优先）
+层次	技术	                                                                说明
+客户端	Next.js 14 (App Router) + React 18 + SWR	纯前端 PWA，部署 Vercel；Tailwind + shadcn/ui；支持 add to Home Screen。
+算法层	TypeScript 模块（Web Worker 执行）	                20 KB JSON 寿命表 + Gompertz 随机；离线运行，无 API 依赖。
+服务端	Vercel Serverless Functions	                                处理 Vault 上传签名、PayPal Webhook、API 代理；快速冷启。
+数据库	Neon PostgreSQL 15	                                                Drizzle ORM；分支式 dev/prod；仅存账户 & Vault 元数据。
+文件存储	Supabase Storage	                                                S3 兼容；客户端 AES‑256 加密后上传。
+支付	PayPal JS SDK (Smart Buttons)	                                Sandbox→Live 切换；Webhook 写 subscriptions 表。
+分析	Vercel Analytics + TikTok Events API	                PV / CTR / 订阅漏斗；A/B 创意测试。
+CI/CD	GitHub Actions → Vercel Preview / Prod	                push → lint/build → Preview；main 合并→Prod。
+邮件：Resend（域名 mail.moreminutes.life，已配置 DKIM / SPF），MJML 模板经 Git 管理，通过 Resend API 发送。
+依赖隔离
+•	packages/core   : 共用算法 & 类型；
+•	apps/web        : 纯 Next.js；
+•	如需原生 App，再新增 apps/mobile，重用 packages/core。
+________________________________________
+3.1 注册 / 登录方案
+1.	边用边注册（Deferred‑Auth）
+o	用户初次预测和倒计时无需账号，使用本地 device_id 储存在 SecureStore。
+o	当用户 ①上传 Legacy Vault 文件 或 ②点击订阅 时，才弹出注册流程。
+2.	注册方式
+渠道	方案	                                                                说明
+Email	Passwordless Magic Link via Supabase Auth	用户输入邮箱→收验证码/一键链接；自动完成 Sign‑in & Sign‑up；无需密码记忆。
+Apple	signInWithAppleAsync() – iOS 14+	                把 apple_sub 存到 users.apple_id；对付费用户强制双因素。
+Google	Expo Google Auth	                                                Android/Web 共用；回落 Magic Link。
+3.	登录保持
+o	Supabase jwt token 缓存在 SecureStore；自动刷新。
+o	每次后台返回新 refresh_token，Zustand store 更新。
+o	游客状态下仅能存 1 次倒计时（IndexedDB）；注册后可同步历史至云端。
+4.	安全要点
+o	RLS（Row‑Level Security）：vault_items.user_id = auth.uid() 限制。
+o	Email 未验证只保留 48h；否则删除 Vault 文件占用。
+o	Legacy Vault 上传前用 AES‑256‑GCM 客端加密，私钥仅本地。
+5.	与 RevenueCat / PayPal 对接
+o	注册后，把 supabase_uid 作为 app_user_id 传给 RevenueCat。
+PayPal Webhook 根据 custom_id = supabase_uid 绑定用户→写 subscriptions 表。
+3.2「数据资产说明」
+项目	                 约定内容
+数据来源	                美国社保局 (SSA) 2022 Period Life Table，已是公有领域。
+文件位置	                packages/core/data/ssa2022.json（≈20 KB）同 repo 发行；前端首次加载时通过 import 直接解析。
+JSON 结构  	jsonc\n{\n \"male\": [0.9931, 0.9927, … 0.0000], // index = age 0-120, qx = P(死亡)\n \"female\": [0.9935, 0.9931, … 0.0000]\n}\n
+随机化	              - 采用 Gompertz (b, c) 参数：b=0.000045, c=1.098（与表校准）。
+                              - 种子 = SHA256(userUid + dob + secretSalt)；这样同一用户多次调用得到稳定预测，不用额外存储。
+更新策略	              每年 SSA 发布新表时，运行脚本 scripts/fetch-life-table.ts：
+1. 爬取官方 CSV → 转 JSON；
+2. 对比差异，如有变化推 PR；
+3. 保留最近 3 年版本文件，版本号写进文件头。
+文件校验	CI 步骤 npm run test:data 计算文件 SHA-1，与 data-checksum.txt 比对，防止被意外改动。
+________________________________________
+4. 数据库模型（MVP）
+erDiagram
+    USERS ||--o{ DEATH_PREDICTION : has
+    USERS ||--o{ LEGACY_VAULT : owns
+    USERS ||--o{ SUBSCRIPTIONS : owns
+
+    USERS {
+      uuid id PK
+      text email
+      text display_name
+      date dob
+      text sex
+      timestamp created_at
+    }
+
+    DEATH_PREDICTION {
+      uuid id PK
+      uuid user_id FK
+      date predicted_dod
+      numeric base_remaining_years
+      numeric adjusted_years
+      json  factors
+      timestamp created_at
+    }
+
+    LEGACY_VAULT {
+      uuid id PK
+      uuid user_id FK
+      text type  -- "audio" | "video" | "text"
+      text storage_path
+      text trigger -- "fixed_date" | "inactivity"
+      date  trigger_value
+      boolean delivered_default false
+      timestamp created_at
+    }
+
+    SUBSCRIPTIONS {
+      uuid id PK
+      uuid user_id FK
+      text tier    -- "Free" |"Plus" | "Pro"
+      date renew_at
+      text platform  -- "paypal"
+      boolean is_active
+    }
+说明：移除 hashed_password 与 SESSIONS 表；Auth 使用无密码 Magic‑Link。
+________________________________________
+5. 设计指南
+•	色板 (Hex)：
+o	Primary 红 #E50914（倒计时）、
+o	Success 绿 #00C48C（延寿）、
+o	Dark 背景 #0E0E0E、
+o	Accent 灰 #9E9E9E。
+•	字体：Inter (默认)、Anton 用于大数字。
+•	动效：Framer Motion；倒计时数字 scale‑pulse 1.2 → 1.0。
+•	音效：滴答心跳 60 BPM loop，可在设置关闭。
+________________________________________
+6. 页面一览（统一路由）
+路由	             组件	               主要元素 / 说明
+/	             LandingPage	Hero + CTA，快速开始按钮
+/calc	               CalcWizard	出生日期选择、性别、风险勾选
+/result	                ResultPage	预测日期 + 倒计时；Share；Try +X days
+/extend	        ExtendLifeScreen	Nudge 卡片；倒计时上涨；订阅入口
+/auth/request	AuthRequestModal	Email Magic‑Link、Apple / Google OAuth
+/auth/verify	AuthProcessingScreen	“正在验证邮箱…”
+/vault	        VaultDashboard	留言列表、+ 新建、订阅储量
+/vault/record	RecordScreen	录音 / 录像 UI、触发条件设定
+/subscribe	           SubscribePage	价格对比、PayPal Smart Buttons
+/subscribe/success	SubscribeSuccessScreen	成功徽章、返回按钮
+/subscribe/fail	SubscribeFailScreen	失败原因、重试 / 联系客服
+/share	    ShareCenterScreen	倒计时 / 延寿图 / MP4 动画生成、语录图模版、社交预览
+/settings	          SettingsScreen	主题、隐私、数据导出、删除账号
+/legal	                 LegalPage	法律免责声明、服务条款
+/about	             AboutScreen	创始人故事、版本号、许可证
+/admin	       AdminDashboard	用户 / 订阅 / Vault / 邮件日志 / 操作记录 / 管理员管理
+所有深链（如 moreminutes.life/s/:code）落在对应页面。如未安装 PWA，自动回落 Web 版本。
+________________________________________
+7. 创始人品牌故事
+Evan Liang – 出生于中国杭州，计算机 & 心理学双学位。高中好友意外离世让他第一次直面“生命倒计时”概念；而在美国加州创业期间，他接触了 Stoicism 的 Memento Mori 与东方五行养生理论，意识到“死亡焦虑”可以转化为珍惜当下与自我提升的力量。2025 年，他决定用极简技术手段把“有限人生”变成一块可视的倒计时牌，又加入数字遗嘱功能，帮助每个人以更平和、更积极的姿态面对终点。品牌口号：“Count less, live more.”
+________________________________________
+8. 一次性项目脚手架
+一次性生成：Next.js 14 PWA、Vercel Serverless API、Drizzle Neon 迁移脚本、PayPal 集成、严格 TypeScript Lint + CI。无需 Docker。本地 npm dev 即可预览。
+# === Death‑Clock‑Lite – Vercel‑First Scaffold ===
+# 目录
+#   apps/web  (Next.js 14 App Router, Tailwind, shadcn/ui)
+#   packages/db   (Drizzle ORM + migrations)
+#   packages/core (life‑table算法, shared types)
+#   .github/workflows/
+#   turbo.json   (monorepo caching)
+
+## 共通
+- 包管理: npm workspace, 开启 "strict-peer-deps": true
+- TypeScript `strict: true`, `isolatedModules`, `noUncheckedIndexedAccess`: true
+- ESLint: eslint-config-next + @typescript-eslint/recommended-strict + Prettier
+- Husky + lint-staged: commit 时 `eslint --max-warnings 0 && prettier --check`
+- Tailwind 配色: `#E50914`(primary), `#00C48C`(success), gray‑900 ` #0E0E0E`
+- Env 示例 `.env.example` 包含: DATABASE_URL, PAYPAL_CLIENT_ID, PAYPAL_SECRET, PAYPAL_WEBHOOK_ID
+
+## apps/web
+- `/`            LandingPage (Hero + CTA) ✅
+- `/calc`        CalcWizard (DOB + Sex) ✅
+- `/result`      ResultPage (Live Countdown, +X Days Button, SharePNG) ✅
+- `/subscribe`   SubscribePage (PayPal Smart Buttons) ✅
+- `/vault`       VaultDashboard (List + Upload) ✅
+- `/settings`    SettingsPage (Algorithm Disclosure) ✅
+- `/legal`       Markdown Static ✅
+- 全站使用 Next.js 14 Server Actions 读取 API / Neon。
+- algorithms 位于 `packages/core/lifeCalc.ts`；首次加载从 `public/ssa2022.json` 读取寿命表 (<20 KB)。
+
+## packages/db
+- Drizzle Postgres schema (users, subscriptions, death_prediction,legacy_vault)
+- `drizzle-kit generate:pg` 输出迁移; `npm db:migrate` 直接推到 Neon。
+
+## API (Vercel Functions)
+- `/api/vault/upload` – 解析 presigned URL, metadata 写库
+- `/api/vault/list` – 返回当前用户 vault_items
+- `/api/paypal/webhook` – 验签, upsert subscription
+- 使用 `@vercel/postgres` pool; Edge Functions 无 cold‑start 问题。
+
+## 支付
+- 前端加载 PayPal JS SDK `client-id=${env}`; 创建订阅 `plan_id: "P‑XXXX"`.
+- Webhook 验签: `crypto.createVerify('RSA-SHA256').verify(cert, body, signature)`.
+
+## CI/CD
+- GitHub Actions: npm install → turbo lint,test,build → Vercel Deploy Preview
+- branch `main` 合并即生产。
+
+## 脚本 alias
+- `npm dev`     → next dev
+- `npm lint`    → eslint
+- `npm build`   → next build (fail on TS error)
+- `npm db:migrate` → drizzle-kit push
+
+# NEXT STEPS:
+# 1. git init && git remote add origin <repo>
+# 2. npm install
+# 3. cp .env.example .env.local (填 Neon & PayPal keys)
+# 4. npm db:migrate
+# 5. npm dev  -> http://localhost:3000
+# 6. 推到 GitHub, 在 Vercel "Import Project" 选择该 repo, 自动部署。
+________________________________________
+9. 管理后台权限矩阵 (MVP)
+功能	SuperAdmin	Moderator	Support
+查看用户列表	✅	✅	✅
+编辑 / 封禁用户	✅	✅	–
+查看订阅状态	✅	✅	✅
+手动更新订阅	✅	–	–
+下载 Vault 加密文件	✅	✅（需授权）	–
+查看 / 重发邮件日志	✅	–	✅
+查看系统操作日志	✅	✅	–
+创建 / 管理管理员	✅	–	–
+________________________________________
+10. 邮件模版清单 (MVP)
+模版 Key	                    触发场景	Phase	说明
+magic_link	用户登录 / 注册	1	Supabase Auth 发送验证码 / 链接
+welcome	              首次注册成功	1	欢迎 + 功能导航
+vault_trigger	Vault 达到触发条件	1	收件人获取下载链接（加密文件）
+subscription_success	PayPal 订阅成功	1	订阅等级、续费日期
+subscription_fail	订阅失败 / 取消	1	指引重新支付
+weekly_report	周一上午	2★	倒计时变化、延寿统计
+________________________________________
+11. 异常与错误场景 (MVP)
+•	网络离线：所有 API 调用统一捕获，Toast “离线模式，结果仅本地保存”。
+•	订阅失败：跳转 /subscribe/fail，展示 debug_id，按钮重试或联系 support@moreminutes.life。
+•	Webhook 超时：前端轮询 /api/subscription/status，30 s 未更新提示联系客服。
+•	Vault 上传失败：自动重试 3 次；仍失败提示“检查网络或更换 Wi Fi”。
+•	邮件未送达：后台 Resend 异常回执写 email_errors 表，Support 查看并可重发。
+________________________________________
+12. 埋点事件计划 (MVP)
+事件名	                    触发位置	关键属性
+view_result	/result 页面加载完成	birth_year, base_days_left
+click_share	Share 按钮	share_type, asset_format
+share_success	系统分享完成回调	platform
+subscription_start	PayPal 弹框打开	plan_id
+subscription_complete	Webhook 状态 Active	plan_id, amount
+nudge_complete	延寿一次 +X 天	delta_days
+________________________________________
+________________________________________
+版本说明：本 v1.0 为 MVP 功能冻结清单；带 ★ 标记为第二阶段迭代再做，目前不做 Roadmap。
+内购相关（RevenueCat、Apple/Google IAP）全部列入 Phase 2 Roadmap，不在当前代码基线出现”。
+
+
+

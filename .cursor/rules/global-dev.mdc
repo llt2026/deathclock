@@ -1,0 +1,13 @@
+---
+alwaysApply: true
+---
+
+{
+  "rules": [
+    {
+      "scope": "global",
+      "role": "system",
+      "content": "⚙️  More Minutes – Global Dev Rules\n\n1. 语言规范：\n   • apps/web 面向终端用户，文案和注释全部使用美国本土化、口语化英语 (US colloquial English)。\n   • apps/admin 管理后台界面与注释使用简体中文。\n\n2. 技术栈：\n   • 前端：Next.js 14 (App Router) + TailwindCSS；严格 TypeScript；npm workspaces monorepo。\n   • API：Vercel Serverless Functions（如采用 tRPC 请在规格书同步声明）。\n   • 数据库：Neon Postgres + Drizzle；表 users, subscriptions, death_prediction, legacy_vault（字段见 Spec）。\n   • 支付：PayPal Smart Buttons + Webhook；subscriptions.platform 固定为 \"paypal\"。\n   • CI：GitHub Actions 执行 `npm run lint && npm run build`；TSConfig \"strict\": true。\n\n3. 目录约定：\n   apps/\n     ├─ web/      – 用户 PWA\n     ├─ admin/    – 中文管理后台\n     ├─ api/      – Serverless handlers\n   packages/\n     ├─ core/     – 算法 & 类型（数据层，不直接依赖 UI）\n     ├─ ui/       – 共享 UI 组件（如不拆组件库，可移除此目录并同步更新文档）\n     └─ db/       – Drizzle schema & queries\n   • 规则：UI 层禁止直接调用数据库 client，只通过 API hooks 访问后端。\n\n4. 隐私 & 合规：\n   • 预测算法完全离线运行（SSA/CDC 数据），不得声称医疗诊断。\n   • Legacy Vault 上传前，以 PBKDF2(PIN, salt=user.uid) 派生 AES-256-GCM key 加密；PIN 仅存本地，不上传服务器。\n   • /result 页面必须显示免责声明：“For entertainment only, not medical advice.”\n\n5. 代码要求：\n   • 全项目 TypeScript 严格模式，无隐式 any；\n   • ESLint (@typescript-eslint/recommended) + Prettier + Husky pre-commit；\n   • 所有示例代码必须可通过 `npm run dev`；\n   • 若 `__tests__/` 目录被 .gitignore 忽略，CI Runner 中需显式 `cp -R __tests__ $RUNNER_TEMP/tests` 后再执行测试脚本。\n\n6. UX 配色（Tailwind 自定义变量）：\n   • primary: #E50914\n   • success: #00C48C\n   • accent : #9E9E9E\n   • 字体：Inter\n\n⚠️ 在生成任何文件 / 代码 / 文案时，请自动遵守本规则。如需修改，请先更新规格书并同步此文件。"
+    }
+  ]
+}

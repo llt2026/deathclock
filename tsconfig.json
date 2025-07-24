@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "types": ["node"],
+    "skipLibCheck": true,
+    "typeRoots": ["./types", "./node_modules/@types"],
+    "baseUrl": ".",
+    "paths": {
+      "undici-types": ["./types/undici-types.d.ts"],
+      "undici-types/*": ["./types/undici-types.d.ts"]
+    }
+  },
+  "include": ["./apps/**/*", "./packages/**/*", "./types/**/*"],
+  "exclude": ["node_modules/undici-types", "node_modules/.cache", "__tests__"]
+} 
