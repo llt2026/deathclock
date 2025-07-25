@@ -7,32 +7,35 @@ import { trackSubscriptionStart } from "../../lib/analytics";
 import { handleError, ErrorType } from "../../lib/error-handler";
 
 const ENV = process.env.NODE_ENV === 'production' ? "live" : "sandbox";
-const CLIENT_ID = ENV === "live"
-  ? process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID_LIVE || ""
-  : process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID_SANDBOX || "AV8nIEzMhHFzKj3o5Fb6I-xULHAuUMGrHDXNQLv9NWw--4k0iKzQmjGSGMD3aDEm2wAJY5sAXjzEg3GI";
-const PLAN_ID = ENV === "live"
-  ? process.env.NEXT_PUBLIC_PAYPAL_PLAN_ID_LIVE || ""
-  : process.env.NEXT_PUBLIC_PAYPAL_PLAN_ID_SANDBOX || "P-5ML4271244454362WXNWU5NQ";
+const CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "";
+const PLAN_PLUS_ID = process.env.NEXT_PUBLIC_PAYPAL_PLAN_PLUS_ID || "";
+const PLAN_PRO_ID = process.env.NEXT_PUBLIC_PAYPAL_PLAN_PRO_ID || "";
 
 export default function SubscribePage() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<"plus" | "pro">("plus");
   const { getAppUser, deviceId } = useAuthStore();
   const user = getAppUser();
 
   // 生成用户标识符：优先使用真实用户ID，否则使用设备ID
   const customId = user?.id || deviceId || `guest-${Date.now()}`;
 
+  // 获取当前选择的计划ID
+  const currentPlanId = selectedPlan === "plus" ? PLAN_PLUS_ID : PLAN_PRO_ID;
+  const currentPlanPrice = selectedPlan === "plus" ? "$3.99" : "$9.99";
+  const currentPlanName = selectedPlan === "plus" ? "Plus" : "Pro";
+
   // 调试信息
-  console.log("PayPal Config:", { ENV, CLIENT_ID: CLIENT_ID.substring(0, 10) + "...", PLAN_ID, customId });
+  console.log("PayPal Config:", { ENV, CLIENT_ID: CLIENT_ID.substring(0, 10) + "...", currentPlanId, customId });
 
   const onApprove = async (data: any) => {
     try {
       setIsProcessing(true);
       
       // 埋点：订阅开始
-      trackSubscriptionStart(PLAN_ID);
+      trackSubscriptionStart(currentPlanId);
       
       console.log("Subscription approved:", data);
       
@@ -66,40 +69,96 @@ export default function SubscribePage() {
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-display text-primary mb-4">
-            Upgrade to Plus
+            Choose Your Plan
           </h1>
           <p className="text-accent">
-            $3.99 per month – Unlock unlimited simulations & 1GB Vault storage
+            Unlock unlimited simulations & extended Vault storage
           </p>
-          <p className="text-xs text-gray-500 mt-2">Environment: {ENV} | Client ID: {CLIENT_ID.substring(0, 10)}...</p>
+        </div>
+
+        {/* Plan Selection */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <button
+            onClick={() => setSelectedPlan("plus")}
+            className={`p-4 rounded-lg border-2 transition-colors ${
+              selectedPlan === "plus"
+                ? "border-primary bg-primary/10"
+                : "border-gray-600 bg-gray-800"
+            }`}
+          >
+            <div className="text-center">
+              <h3 className="font-semibold text-lg">Plus</h3>
+              <div className="text-2xl font-display text-primary">$3.99</div>
+              <div className="text-xs text-accent">/month</div>
+            </div>
+          </button>
+          <button
+            onClick={() => setSelectedPlan("pro")}
+            className={`p-4 rounded-lg border-2 transition-colors ${
+              selectedPlan === "pro"
+                ? "border-primary bg-primary/10"
+                : "border-gray-600 bg-gray-800"
+            }`}
+          >
+            <div className="text-center">
+              <h3 className="font-semibold text-lg">Pro</h3>
+              <div className="text-2xl font-display text-primary">$9.99</div>
+              <div className="text-xs text-accent">/month</div>
+            </div>
+          </button>
         </div>
 
         <div className="bg-gray-800 rounded-lg p-6 mb-6">
           <div className="text-center mb-4">
-            <h3 className="text-2xl font-semibold text-primary">Plus Plan</h3>
+            <h3 className="text-2xl font-semibold text-primary">{currentPlanName} Plan</h3>
             <div className="text-4xl font-display text-white mt-2">
-              $3.99<span className="text-lg text-accent">/month</span>
+              {currentPlanPrice}<span className="text-lg text-accent">/month</span>
             </div>
           </div>
 
-          <ul className="space-y-3 mb-6">
-            <li className="flex items-center">
-              <span className="text-success mr-2">✓</span>
-              <span className="text-sm">Unlimited life extension simulations</span>
-            </li>
-            <li className="flex items-center">
-              <span className="text-success mr-2">✓</span>
-              <span className="text-sm">Advanced longevity tracking</span>
-            </li>
-            <li className="flex items-center">
-              <span className="text-success mr-2">✓</span>
-              <span className="text-sm">Priority customer support</span>
-            </li>
-            <li className="flex items-center">
-              <span className="text-success mr-2">✓</span>
-              <span className="text-sm">Extended Legacy Vault storage (1GB)</span>
-            </li>
-          </ul>
+          {selectedPlan === "plus" ? (
+            <ul className="space-y-3 mb-6">
+              <li className="flex items-center">
+                <span className="text-success mr-2">✓</span>
+                <span className="text-sm">Unlimited life extension simulations</span>
+              </li>
+              <li className="flex items-center">
+                <span className="text-success mr-2">✓</span>
+                <span className="text-sm">Advanced longevity tracking</span>
+              </li>
+              <li className="flex items-center">
+                <span className="text-success mr-2">✓</span>
+                <span className="text-sm">Legacy Vault storage (1GB)</span>
+              </li>
+              <li className="flex items-center">
+                <span className="text-success mr-2">✓</span>
+                <span className="text-sm">Priority customer support</span>
+              </li>
+            </ul>
+          ) : (
+            <ul className="space-y-3 mb-6">
+              <li className="flex items-center">
+                <span className="text-success mr-2">✓</span>
+                <span className="text-sm">Everything in Plus</span>
+              </li>
+              <li className="flex items-center">
+                <span className="text-success mr-2">✓</span>
+                <span className="text-sm">Extended Legacy Vault (10GB)</span>
+              </li>
+              <li className="flex items-center">
+                <span className="text-success mr-2">✓</span>
+                <span className="text-sm">Custom themes & widgets</span>
+              </li>
+              <li className="flex items-center">
+                <span className="text-success mr-2">✓</span>
+                <span className="text-sm">Advanced analytics & insights</span>
+              </li>
+              <li className="flex items-center">
+                <span className="text-success mr-2">✓</span>
+                <span className="text-sm">Family sharing (up to 5 members)</span>
+              </li>
+            </ul>
+          )}
 
           {CLIENT_ID ? (
             <PayPalScriptProvider 
@@ -115,7 +174,7 @@ export default function SubscribePage() {
                 disabled={isProcessing}
                 createSubscription={(data, actions) => {
                   return actions.subscription.create({
-                    plan_id: PLAN_ID,
+                    plan_id: currentPlanId,
                     custom_id: customId,
                   });
                 }}

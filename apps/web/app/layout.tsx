@@ -28,8 +28,8 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${anton.variable}`}>
       <head>
-        <link rel="icon" href="/icon-192.png" />
-        <link rel="apple-touch-icon" href="/icon-192.png" />
+        <link rel="icon" href="/icon.svg" />
+        <link rel="apple-touch-icon" href="/icon.svg" />
       </head>
       <body className="font-sans bg-dark text-white min-h-screen">
         <ClientProviders>
@@ -60,22 +60,6 @@ export default function RootLayout({
         </ClientProviders>
         
         {/* 分析脚本 */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              // 初始化错误处理和分析
-              if (typeof window !== 'undefined') {
-                import('/lib/error-handler').then(({ errorHandler }) => {
-                  errorHandler.setupNetworkDetection();
-                });
-                
-                import('/lib/analytics').then(({ initAnalytics }) => {
-                  initAnalytics();
-                });
-              }
-            `,
-          }}
-        />
       </body>
     </html>
   );
