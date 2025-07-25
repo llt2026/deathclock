@@ -3,12 +3,16 @@ import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabase';
 import { syncUser } from '../lib/api';
 import type { User, Session } from '@supabase/supabase-js';
+import type { AppUser } from '../types/user';
 
 interface AuthState {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
   deviceId: string;
+  
+  // 计算属性：获取扩展的用户信息
+  getAppUser: () => AppUser | null;
   
   // Actions
   setUser: (user: User | null) => void;
@@ -18,6 +22,7 @@ interface AuthState {
   signOut: () => Promise<void>;
   initAuth: () => Promise<void>;
   syncUserToDatabase: (user: User) => Promise<void>;
+  updateUserMetadata: (metadata: { dob?: string; sex?: 'male' | 'female' }) => Promise<void>;
 }
 
 // 生成设备ID用于游客模式
@@ -33,6 +38,18 @@ export const useAuthStore = create<AuthState>()(
       isLoading: true,
       deviceId: typeof window !== 'undefined' ? 
         localStorage.getItem('deviceId') || generateDeviceId() : generateDeviceId(),
+
+      getAppUser: () => {
+        const { user } = get();
+        if (!user) return null;
+        
+        return {
+          ...user,
+          dob: user.user_metadata?.dob,
+          sex: user.user_metadata?.sex,
+          display_name: user.user_metadata?.display_name || user.email?.split('@')[0],
+        } as AppUser;
+      },
 
       setUser: (user) => set({ user }),
       setSession: (session) => set({ session }),
@@ -50,6 +67,24 @@ export const useAuthStore = create<AuthState>()(
         } catch (error) {
           console.error('Magic link error:', error);
           throw new Error('Failed to send magic link');
+        }
+      },
+
+      updateUserMetadata: async (metadata: { dob?: string; sex?: 'male' | 'female' }) => {
+        try {
+          const { data, error } = await supabase.auth.updateUser({
+            data: metadata
+          });
+          
+          if (error) throw error;
+          
+          if (data.user) {
+            set({ user: data.user });
+            await get().syncUserToDatabase(data.user);
+          }
+        } catch (error) {
+          console.error('Update user metadata error:', error);
+          throw new Error('Failed to update user information');
         }
       },
 

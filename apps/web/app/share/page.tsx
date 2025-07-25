@@ -1,315 +1,186 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { trackEvent } from "../../lib/analytics";
+import { trackClickShare, trackShareSuccess } from "../../lib/analytics";
 
-type ShareFormat = "countdown" | "longevity" | "milestone";
-type MediaType = "png" | "mp4";
-
-interface ShareData {
-  timeLeft: string;
-  deathDate: string;
-  remainingYears: string;
-  currentAge: number;
-}
-
-export default function ShareCenterScreen() {
+export default function SharePage() {
   const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [selectedFormat, setSelectedFormat] = useState<ShareFormat>("countdown");
-  const [selectedMedia, setSelectedMedia] = useState<MediaType>("png");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [shareData, setShareData] = useState<ShareData | null>(null);
-  const [generatedAssetUrl, setGeneratedAssetUrl] = useState<string | null>(null);
+  const [prediction, setPrediction] = useState<any>(null);
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    // 从 localStorage 读取预测数据
-    const inputData = localStorage.getItem("deathClockInput");
-    const resultData = localStorage.getItem("lastPredictionResult");
-    
-    if (inputData && resultData) {
-      const parsedResult = JSON.parse(resultData);
-      setShareData(parsedResult);
+    // 从本地存储获取预测数据
+    const stored = localStorage.getItem('lastPredictionResult');
+    if (stored) {
+      setPrediction(JSON.parse(stored));
+    } else {
+      // 如果没有预测数据，跳转到计算页面
+      router.push("/calc");
     }
-  }, []);
+  }, [router]);
 
-  const shareFormats = [
-    {
-      id: "countdown" as ShareFormat,
-      title: "Live Countdown",
-      description: "Your real-time death countdown timer",
-      preview: shareData ? `⏰ ${shareData.remainingYears} years remaining` : "⏰ 28,847 days remaining"
-    },
-    {
-      id: "longevity" as ShareFormat,
-      title: "Longevity Progress",
-      description: "Show your +X days from healthy habits",
-      preview: "🌱 +147 days gained through wellness"
-    },
-    {
-      id: "milestone" as ShareFormat,
-      title: "Milestone Achievement",
-      description: "Celebrate life extension milestones",
-      preview: "🎉 Hit 30-day streak of exercise!"
-    }
-  ];
-
-  const generateCanvas = (width: number = 1080, height: number = 1080): string => {
+  const generateShareImage = () => {
     const canvas = canvasRef.current;
-    if (!canvas) return '';
+    if (!canvas || !prediction) return '';
 
-    canvas.width = width;
-    canvas.height = height;
+    canvas.width = 1080;
+    canvas.height = 1080;
     const ctx = canvas.getContext('2d');
     if (!ctx) return '';
 
-    // Background gradient
-    const gradient = ctx.createLinearGradient(0, 0, width, height);
+    // 背景渐变
+    const gradient = ctx.createLinearGradient(0, 0, 1080, 1080);
     gradient.addColorStop(0, '#0E0E0E');
     gradient.addColorStop(1, '#1A1A1A');
     ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, width, height);
+    ctx.fillRect(0, 0, 1080, 1080);
 
-    // Brand colors
-    const primaryColor = '#E50914';
-    const successColor = '#00C48C';
-    const textColor = '#FFFFFF';
-    const accentColor = '#9E9E9E';
-
-    // Title
-    ctx.fillStyle = textColor;
-    ctx.font = 'bold 48px Inter';
+    // 设置字体
     ctx.textAlign = 'center';
-    ctx.fillText('More Minutes', width / 2, 120);
+    ctx.textBaseline = 'middle';
 
-    // Subtitle
-    ctx.fillStyle = accentColor;
+    // 标题
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 48px Inter';
+    ctx.fillText('More Minutes', 540, 150);
+
+    // 副标题
+    ctx.fillStyle = '#9E9E9E';
     ctx.font = '24px Inter';
-    ctx.fillText('Count less, live more.', width / 2, 160);
+    ctx.fillText('Count less, live more.', 540, 200);
 
-    if (selectedFormat === 'countdown' && shareData) {
-      // Main countdown display
-      ctx.fillStyle = primaryColor;
-      ctx.font = 'bold 72px Anton';
-      ctx.fillText(shareData.remainingYears, width / 2, 300);
-      
-      ctx.fillStyle = textColor;
-      ctx.font = '32px Inter';
-      ctx.fillText('Years Remaining', width / 2, 350);
+    // 主要倒计时显示
+    ctx.fillStyle = '#E50914';
+    ctx.font = 'bold 72px Anton';
+    ctx.fillText(`${prediction.remainingYears} Years`, 540, 400);
 
-      // Death date
-      ctx.fillStyle = accentColor;
-      ctx.font = '28px Inter';
-      ctx.fillText(`Until ${new Date(shareData.deathDate).toLocaleDateString()}`, width / 2, 400);
+    // 详细信息
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '32px Inter';
+    ctx.fillText('Remaining', 540, 450);
 
-      // Current age
-      ctx.fillStyle = textColor;
+    // 预计日期
+    ctx.fillStyle = '#9E9E9E';
+    ctx.font = '28px Inter';
+    const deathDate = new Date(prediction.deathDate);
+    ctx.fillText(`Until ${deathDate.toLocaleDateString()}`, 540, 520);
+
+    // 当前年龄
+    if (prediction.currentAge) {
+      ctx.fillStyle = '#9E9E9E';
       ctx.font = '24px Inter';
-      ctx.fillText(`Current Age: ${shareData.currentAge}`, width / 2, 500);
-
-    } else if (selectedFormat === 'longevity') {
-      // Longevity progress
-      ctx.fillStyle = successColor;
-      ctx.font = 'bold 64px Anton';
-      ctx.fillText('+147 Days', width / 2, 300);
-      
-      ctx.fillStyle = textColor;
-      ctx.font = '32px Inter';
-      ctx.fillText('Life Extended', width / 2, 350);
-
-      ctx.fillStyle = accentColor;
-      ctx.font = '24px Inter';
-      ctx.fillText('Through Healthy Lifestyle Choices', width / 2, 400);
-
-    } else if (selectedFormat === 'milestone') {
-      // Milestone achievement
-      ctx.fillStyle = successColor;
-      ctx.font = 'bold 96px Inter';
-      ctx.fillText('🎉', width / 2, 280);
-      
-      ctx.fillStyle = textColor;
-      ctx.font = 'bold 36px Inter';
-      ctx.fillText('30-Day Streak!', width / 2, 350);
-
-      ctx.fillStyle = accentColor;
-      ctx.font = '24px Inter';
-      ctx.fillText('Consistency builds longevity', width / 2, 400);
+      ctx.fillText(`Current Age: ${prediction.currentAge}`, 540, 600);
     }
 
-    // Algorithm transparency
-    ctx.fillStyle = accentColor;
+    // 免责声明
+    ctx.fillStyle = '#9E9E9E';
     ctx.font = '16px Inter';
-    ctx.fillText('Based on SSA 2022 Period Life Table', width / 2, height - 100);
-    ctx.fillText('For entertainment only, not medical advice', width / 2, height - 70);
+    ctx.fillText('Based on SSA 2022 Period Life Table', 540, 850);
+    ctx.fillText('For entertainment only, not medical advice', 540, 880);
 
-    // Website
-    ctx.fillStyle = primaryColor;
+    // 网站
+    ctx.fillStyle = '#E50914';
     ctx.font = '20px Inter';
-    ctx.fillText('moreminutes.life', width / 2, height - 30);
+    ctx.fillText('moreminutes.life', 540, 950);
 
     return canvas.toDataURL('image/png');
   };
 
-  const generateShareAsset = async () => {
-    if (!shareData && selectedFormat === 'countdown') {
-      alert('No prediction data found. Please calculate your countdown first.');
-      router.push('/calc');
-      return;
-    }
-
+  const handleDownload = () => {
+    trackClickShare("countdown_image", "png");
     setIsGenerating(true);
+
     try {
-      let assetUrl: string;
-
-      if (selectedMedia === 'png') {
-        // Generate static image
-        assetUrl = generateCanvas();
-        setGeneratedAssetUrl(assetUrl);
+      const imageUrl = generateShareImage();
+      if (imageUrl) {
+        setGeneratedImageUrl(imageUrl);
         
-        // Track event
-        trackEvent('ShareSuccess', {
-          shareType: selectedFormat,
-          assetFormat: 'png',
-          platform: 'generated'
-        });
-
-      } else {
-        // For MP4, we'd need a more complex video generation library
-        // For now, use the static image as fallback
-        assetUrl = generateCanvas();
-        setGeneratedAssetUrl(assetUrl);
-        
-        trackEvent('ShareSuccess', {
-          shareType: selectedFormat,
-          assetFormat: 'mp4_fallback',
-          platform: 'generated'
-        });
-      }
-
-      // Try native sharing
-      if (navigator.share && selectedMedia === 'png') {
-        // Convert data URL to blob for sharing
-        const response = await fetch(assetUrl);
-        const blob = await response.blob();
-        const file = new File([blob], `moreminutes-${selectedFormat}.png`, { type: 'image/png' });
-
-        await navigator.share({
-          title: "My Life Journey - More Minutes",
-          text: "Check out my life countdown and longevity progress! 🕐",
-          files: [file],
-        });
-      } else {
-        // Fallback: download the image
+        // 下载图片
         const link = document.createElement('a');
-        link.download = `moreminutes-${selectedFormat}-${Date.now()}.png`;
-        link.href = assetUrl;
+        link.href = imageUrl;
+        link.download = `my-life-countdown-${Date.now()}.png`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-      }
 
+        trackShareSuccess('download', 'countdown_image', 'png');
+      }
     } catch (error) {
-      console.error("Share generation failed:", error);
-      alert("Failed to generate share asset. Please try again.");
+      console.error("Failed to generate image:", error);
+      alert("Failed to generate image. Please try again.");
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const copyShareableLink = async () => {
-    const shareableData = shareData ? {
-      years: shareData.remainingYears,
-      age: shareData.currentAge,
-      format: selectedFormat
-    } : {};
-    
-    const shareUrl = `https://moreminutes.life/share?data=${encodeURIComponent(JSON.stringify(shareableData))}`;
+  const handleShare = async () => {
+    trackClickShare("system_share", "png");
     
     try {
-      await navigator.clipboard.writeText(shareUrl);
-      alert('Shareable link copied to clipboard!');
-      
-      trackEvent('ClickShare', {
-        shareType: selectedFormat,
-        shareMethod: 'link'
-      });
+      const imageUrl = generateShareImage();
+      if (!imageUrl) return;
+
+      if (navigator.share) {
+        // 转换为 Blob 用于分享
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+        const file = new File([blob], 'my-life-countdown.png', { type: 'image/png' });
+
+        await navigator.share({
+          title: 'My Life Countdown',
+          text: `I have ${prediction?.remainingYears} years left to live. Check yours!`,
+          files: [file],
+          url: 'https://moreminutes.life'
+        });
+
+        trackShareSuccess('system', 'countdown_image', 'png');
+      } else {
+        // 回退到下载
+        handleDownload();
+      }
     } catch (error) {
-      console.error('Failed to copy link:', error);
+      console.error("Share failed:", error);
+      // 回退到下载
+      handleDownload();
     }
   };
 
-  return (
-    <main className="min-h-screen p-4 max-w-4xl mx-auto">
-      <div className="mb-6">
-        <button
-          onClick={() => router.back()}
-          className="text-accent hover:text-white transition mb-4"
-        >
-          ← Back
-        </button>
-        <h1 className="text-3xl font-display mb-2">Share Your Journey</h1>
-        <p className="text-accent">Create beautiful visuals to share your life progress</p>
+  if (!prediction) {
+    return (
+      <div className="min-h-screen bg-dark text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Loading prediction data...</p>
+        </div>
       </div>
+    );
+  }
 
-      {/* Format Selection */}
-      <section className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">Choose Format</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {shareFormats.map((format) => (
-            <button
-              key={format.id}
-              onClick={() => setSelectedFormat(format.id)}
-              className={`p-4 border-2 rounded-lg text-left transition ${
-                selectedFormat === format.id
-                  ? "border-primary bg-primary/10"
-                  : "border-gray-700 hover:border-gray-600"
-              }`}
-            >
-              <h3 className="font-semibold mb-2">{format.title}</h3>
-              <p className="text-sm text-accent mb-2">{format.description}</p>
-              <div className="text-xs bg-dark/50 p-2 rounded font-mono">
-                {format.preview}
-              </div>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* Media Type Selection */}
-      <section className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">Media Type</h2>
-        <div className="flex gap-4">
+  return (
+    <div className="min-h-screen bg-dark text-white p-4">
+      <div className="max-w-2xl mx-auto">
+        <div className="text-center mb-8">
           <button
-            onClick={() => setSelectedMedia("png")}
-            className={`px-6 py-3 rounded-lg transition ${
-              selectedMedia === "png"
-                ? "bg-primary text-white"
-                : "bg-gray-800 text-accent hover:bg-gray-700"
-            }`}
+            onClick={() => router.back()}
+            className="text-accent hover:text-white transition mb-4"
           >
-            📸 Static Image (PNG)
+            ← Back
           </button>
-          <button
-            onClick={() => setSelectedMedia("mp4")}
-            className={`px-6 py-3 rounded-lg transition ${
-              selectedMedia === "mp4"
-                ? "bg-primary text-white"
-                : "bg-gray-800 text-accent hover:bg-gray-700"
-            }`}
-            disabled={true}
-          >
-            🎬 Video (Coming Soon)
-          </button>
+          <h1 className="text-4xl font-display text-primary mb-4">
+            Share Your Countdown
+          </h1>
+          <p className="text-accent">
+            Create beautiful visuals to share your life progress
+          </p>
         </div>
-      </section>
 
-      {/* Preview & Generate */}
-      <section className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">Preview & Generate</h2>
+        {/* 预览区域 */}
         <div className="bg-gray-900 rounded-lg p-8 text-center mb-6">
-          {generatedAssetUrl ? (
+          {generatedImageUrl ? (
             <img 
-              src={generatedAssetUrl} 
+              src={generatedImageUrl} 
               alt="Generated share image" 
               className="max-w-sm mx-auto rounded-lg shadow-lg"
             />
@@ -319,51 +190,52 @@ export default function ShareCenterScreen() {
                 <div className="text-4xl mb-2">🎨</div>
                 <p className="text-accent">Preview will appear here</p>
                 <p className="text-sm text-gray-500 mt-2">
-                  {selectedFormat} • {selectedMedia.toUpperCase()}
+                  Countdown Image • PNG
                 </p>
               </div>
             </div>
           )}
         </div>
 
-        <div className="flex gap-4 justify-center flex-wrap">
+        {/* 分享选项 */}
+        <div className="space-y-4 mb-8">
           <button
-            onClick={generateShareAsset}
+            onClick={handleDownload}
             disabled={isGenerating}
-            className="px-8 py-3 bg-primary text-white rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
           >
-            {isGenerating ? "Generating..." : `Generate & Share ${selectedMedia.toUpperCase()}`}
+            {isGenerating ? "Generating..." : "📸 Generate & Download Image"}
           </button>
-          
+
           <button
-            onClick={copyShareableLink}
-            className="px-6 py-3 border border-gray-600 text-accent rounded-lg hover:bg-gray-800 transition"
+            onClick={handleShare}
+            disabled={isGenerating}
+            className="w-full py-3 bg-success text-black font-semibold rounded-lg hover:bg-green-400 disabled:opacity-50 transition-colors"
           >
-            📋 Copy Link
+            📤 Share via System
           </button>
-          
+
           <button
-            onClick={() => router.push("/")}
-            className="px-6 py-3 border border-gray-600 text-accent rounded-lg hover:bg-gray-800 transition"
+            onClick={() => router.push("/result")}
+            className="w-full py-3 bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-600 transition-colors"
           >
-            Back to Home
+            Back to Results
           </button>
         </div>
-      </section>
 
-      {/* Hidden canvas for image generation */}
-      <canvas ref={canvasRef} style={{ display: 'none' }} />
+        {/* 提示信息 */}
+        <div className="text-sm text-gray-500 text-center">
+          <h3 className="font-semibold mb-2">Sharing Tips:</h3>
+          <ul className="space-y-1">
+            <li>• Generated images work great for Instagram Stories and Twitter</li>
+            <li>• Images include algorithm transparency and disclaimers</li>
+            <li>• Share to inspire friends to check their countdown too!</li>
+          </ul>
+        </div>
 
-      {/* Tips */}
-      <section className="text-sm text-gray-500">
-        <h3 className="font-semibold mb-2">Sharing Tips:</h3>
-        <ul className="space-y-1">
-          <li>• PNG images work great for Instagram Stories and Twitter</li>
-          <li>• Generated images include algorithm transparency</li>
-          <li>• All content includes proper disclaimers</li>
-          <li>• Share links preserve your calculation for friends to see</li>
-        </ul>
-      </section>
-    </main>
+        {/* 隐藏的 Canvas */}
+        <canvas ref={canvasRef} style={{ display: 'none' }} />
+      </div>
+    </div>
   );
 } 

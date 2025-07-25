@@ -1,109 +1,124 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import USDatePicker from "../../components/USDatePicker";
+import { useAuthStore } from "../../store/auth";
+import { trackEvent } from "../../lib/analytics";
 
-export default function CalcWizard() {
-  const [dob, setDob] = useState("");
-  const [sex, setSex] = useState<"male" | "female">("male");
-  const [risks, setRisks] = useState({
-    smoking: false,
-    drinking: false,
-  });
+export default function CalcPage() {
+  const { getAppUser, updateUserMetadata } = useAuthStore();
+  const user = getAppUser();
   const router = useRouter();
 
-  const handleSubmit = () => {
-    if (!dob) {
-      alert("Please select your birth date");
+  const [dob, setDob] = useState(user?.dob || "");
+  const [sex, setSex] = useState<"male" | "female" | "">(user?.sex || "");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!dob || !sex) {
+      alert("Please fill in all fields");
       return;
     }
-    // 保存到 localStorage 用于 result 页面
-    localStorage.setItem("deathClockInput", JSON.stringify({ dob, sex, risks }));
-    router.push("/result");
+
+    setIsSubmitting(true);
+
+    try {
+      // 更新用户元数据
+      await updateUserMetadata({ dob, sex });
+
+      // 埋点
+      trackEvent("calculation_started", {
+        birth_year: new Date(dob).getFullYear(),
+        sex,
+        user_type: user ? "authenticated" : "guest"
+      });
+
+      // 跳转到结果页面
+      router.push("/result");
+    } catch (error) {
+      console.error("Failed to update user info:", error);
+      alert("Failed to save information. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen gap-8 py-8">
-      <div className="text-center">
-        <h1 className="text-4xl font-display mb-2">Life Calculation</h1>
-        <p className="text-accent">Just 3 simple questions. Takes 10 seconds.</p>
-      </div>
-
-      <div className="w-full max-w-md space-y-6">
-        {/* Birth Date */}
-        <div>
-          <label className="block text-sm font-medium mb-2">Birth Date</label>
-          <USDatePicker
-            value={dob}
-            onChange={setDob}
-            className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white"
-            max={new Date().toISOString().split("T")[0]}
-          />
+    <div className="min-h-screen bg-dark text-white flex items-center justify-center p-4">
+      <div className="max-w-md w-full">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-display text-primary mb-4">
+            Calculate Your Time
+          </h1>
+          <p className="text-accent">
+            Just two quick questions to predict your life countdown
+          </p>
         </div>
 
-        {/* Sex */}
-        <div>
-          <label className="block text-sm font-medium mb-2">Sex</label>
-          <div className="flex gap-4">
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                value="male"
-                checked={sex === "male"}
-                onChange={(e) => setSex(e.target.value as "male")}
-                className="text-primary"
-              />
-              Male
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Date of Birth */}
+          <div>
+            <label htmlFor="dob" className="block text-sm font-medium mb-2">
+              Date of Birth
             </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                value="female"
-                checked={sex === "female"}
-                onChange={(e) => setSex(e.target.value as "female")}
-                className="text-primary"
-              />
-              Female
-            </label>
+            <input
+              type="date"
+              id="dob"
+              value={dob}
+              onChange={(e) => setDob(e.target.value)}
+              max={new Date().toISOString().split('T')[0]}
+              className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-white"
+              required
+            />
           </div>
-        </div>
 
-        {/* Risk Factors */}
-        <div>
-          <label className="block text-sm font-medium mb-2">Risk Factors (Optional)</label>
-          <div className="space-y-2">
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={risks.smoking}
-                onChange={(e) => setRisks(prev => ({ ...prev, smoking: e.target.checked }))}
-                className="text-primary"
-              />
-              Regular smoking
+          {/* Gender */}
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Gender
             </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={risks.drinking}
-                onChange={(e) => setRisks(prev => ({ ...prev, drinking: e.target.checked }))}
-                className="text-primary"
-              />
-              Heavy drinking
-            </label>
+            <div className="flex gap-4">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  value="male"
+                  checked={sex === "male"}
+                  onChange={(e) => setSex(e.target.value as "male")}
+                  className="mr-2 text-primary focus:ring-primary"
+                />
+                Male
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  value="female"
+                  checked={sex === "female"}
+                  onChange={(e) => setSex(e.target.value as "female")}
+                  className="mr-2 text-primary focus:ring-primary"
+                />
+                Female
+              </label>
+            </div>
           </div>
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full py-3 bg-primary hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
+          >
+            {isSubmitting ? "Calculating..." : "Calculate My Life Countdown"}
+          </button>
+        </form>
+
+        <div className="mt-6 text-center">
+          <p className="text-xs text-accent">
+            For entertainment only, not medical advice.
+            <br />
+            Based on SSA 2022 actuarial data.
+          </p>
         </div>
-
-        <button
-          onClick={handleSubmit}
-          className="w-full px-6 py-3 bg-primary text-white rounded-md hover:opacity-90 transition font-medium"
-        >
-          Calculate My Time
-        </button>
       </div>
-
-      <p className="text-xs text-gray-500 max-w-md text-center">
-        For entertainment only, not medical advice.
-      </p>
-    </main>
+    </div>
   );
 } 

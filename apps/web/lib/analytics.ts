@@ -106,7 +106,86 @@ export function trackEvent(eventName: string, properties?: Record<string, any>) 
   tiktokAnalytics.track(eventName, properties);
 }
 
+// ============= 6个关键埋点事件 =============
+
+// 1. view_result - /result 页面加载完成
+export function trackViewResult(birthYear: number, baseDaysLeft: number) {
+  trackEvent('view_result', {
+    birth_year: birthYear,
+    base_days_left: baseDaysLeft,
+    timestamp: new Date().toISOString()
+  });
+  
+  // TikTok 专用事件
+  tiktokAnalytics.trackViewResult(birthYear, baseDaysLeft);
+}
+
+// 2. click_share - Share 按钮点击
+export function trackClickShare(shareType: string, assetFormat: string) {
+  trackEvent('click_share', {
+    share_type: shareType,
+    asset_format: assetFormat,
+    timestamp: new Date().toISOString()
+  });
+}
+
+// 3. share_success - 系统分享完成回调
+export function trackShareSuccess(platform: string, shareType: string, assetFormat: string) {
+  trackEvent('share_success', {
+    platform: platform,
+    share_type: shareType,
+    asset_format: assetFormat,
+    timestamp: new Date().toISOString()
+  });
+  
+  // TikTok 专用事件
+  tiktokAnalytics.trackShare(shareType, assetFormat);
+}
+
+// 4. subscription_start - PayPal 弹框打开
+export function trackSubscriptionStart(planId: string) {
+  trackEvent('subscription_start', {
+    plan_id: planId,
+    timestamp: new Date().toISOString()
+  });
+  
+  // TikTok 专用事件
+  tiktokAnalytics.trackSubscriptionStart(planId);
+}
+
+// 5. subscription_complete - Webhook 状态 Active
+export function trackSubscriptionComplete(planId: string, amount: number) {
+  trackEvent('subscription_complete', {
+    plan_id: planId,
+    amount: amount,
+    timestamp: new Date().toISOString()
+  });
+  
+  // TikTok 专用事件
+  tiktokAnalytics.trackSubscriptionComplete(planId, amount);
+}
+
+// 6. nudge_complete - 延寿一次 +X 天
+export function trackNudgeComplete(deltaDays: number) {
+  trackEvent('nudge_complete', {
+    delta_days: deltaDays,
+    improvement_category: deltaDays > 100 ? 'major' : deltaDays > 30 ? 'moderate' : 'minor',
+    timestamp: new Date().toISOString()
+  });
+  
+  // TikTok 专用事件
+  tiktokAnalytics.trackLongevityNudge(deltaDays);
+}
+
 // 页面浏览跟踪
 export function trackPageView(pageName: string) {
-  trackEvent('page_view', { page: pageName });
+  trackEvent('page_view', { 
+    page: pageName,
+    timestamp: new Date().toISOString()
+  });
+} 
+
+// 初始化 TikTok Analytics
+export function initAnalytics() {
+  tiktokAnalytics.init();
 } 

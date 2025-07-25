@@ -3,76 +3,79 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "../../../store/auth";
 
-export default function AuthProcessingScreen() {
-  const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
+export default function AuthVerifyPage() {
+  const [status, setStatus] = useState<"verifying" | "success" | "error">("verifying");
   const router = useRouter();
-  const { initAuth, user } = useAuthStore();
+  const { user } = useAuthStore();
 
   useEffect(() => {
-    const handleAuthCallback = async () => {
-      try {
-        await initAuth();
-        // 检查 URL 中的认证参数
-        const params = new URLSearchParams(window.location.search);
-        if (params.get('access_token')) {
-          setStatus("success");
-          setTimeout(() => {
-            router.push("/vault");
-          }, 2000);
-        } else {
-          setStatus("error");
-        }
-      } catch (error) {
-        console.error("Auth verification error:", error);
-        setStatus("error");
-      }
-    };
-
-    handleAuthCallback();
-  }, [initAuth, router]);
-
-  if (status === "loading") {
-    return (
-      <main className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        <p className="text-accent">Verifying your email...</p>
-      </main>
-    );
-  }
-
-  if (status === "success") {
-    return (
-      <main className="flex flex-col items-center justify-center min-h-screen gap-6">
-        <div className="text-center">
-          <div className="text-6xl mb-4">✅</div>
-          <h1 className="text-3xl font-display mb-2">Welcome Back!</h1>
-          <p className="text-accent">You're successfully signed in.</p>
-        </div>
-        <p className="text-sm text-gray-400">Redirecting you to your account...</p>
-      </main>
-    );
-  }
+    if (user) {
+      setStatus("success");
+      setTimeout(() => {
+        router.push("/");
+      }, 2000);
+    }
+  }, [user, router]);
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen gap-6">
-      <div className="text-center">
-        <div className="text-6xl mb-4">❌</div>
-        <h1 className="text-3xl font-display mb-2">Verification Failed</h1>
-        <p className="text-accent mb-6">
-          The magic link has expired or is invalid.
-        </p>
-        <div className="space-y-3">
-          <button
-            onClick={() => router.push("/auth/request")}
-            className="px-6 py-3 bg-primary text-white rounded-md hover:opacity-90 transition"
-          >
-            Request New Link
-          </button>
+    <main className="flex items-center justify-center min-h-screen p-6">
+      <div className="text-center max-w-md">
+        {status === "verifying" && (
+          <>
+            <div className="text-6xl mb-6 animate-spin">⏳</div>
+            <h1 className="text-2xl font-bold mb-4">Verifying your email...</h1>
+            <p className="text-accent mb-8">
+              Please check your email and click the magic link to continue.
+            </p>
+            <div className="space-y-4">
+              <p className="text-sm text-gray-400">
+                This page will automatically redirect once you click the link.
+              </p>
+              <button
+                onClick={() => router.push("/auth/request")}
+                className="text-primary hover:underline"
+              >
+                Didn't receive the email? Send another
+              </button>
+            </div>
+          </>
+        )}
+
+        {status === "success" && (
+          <>
+            <div className="text-6xl mb-6">✅</div>
+            <h1 className="text-2xl font-bold mb-4">Welcome back!</h1>
+            <p className="text-accent mb-4">
+              You've been successfully signed in.
+            </p>
+            <p className="text-sm text-gray-400">
+              Redirecting you to your dashboard...
+            </p>
+          </>
+        )}
+
+        {status === "error" && (
+          <>
+            <div className="text-6xl mb-6">❌</div>
+            <h1 className="text-2xl font-bold mb-4">Verification failed</h1>
+            <p className="text-accent mb-8">
+              The magic link may have expired or is invalid.
+            </p>
+            <button
+              onClick={() => router.push("/auth/request")}
+              className="px-6 py-3 bg-primary text-white rounded-lg hover:opacity-90 transition"
+            >
+              Try Again
+            </button>
+          </>
+        )}
+
+        <div className="mt-8">
           <button
             onClick={() => router.push("/")}
-            className="block w-full px-4 py-2 text-accent hover:text-white transition"
+            className="text-gray-400 hover:text-white transition"
           >
-            ← Continue as Guest
+            ← Back to Home
           </button>
         </div>
       </div>

@@ -1,16 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // 基础配置
-  images: {
-    domains: [],
-    unoptimized: false,
+  transpilePackages: ['@moreminutes/core', '@moreminutes/db'],
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@/packages': require('path').resolve(__dirname, '../../packages'),
+    };
+    return config;
   },
-  // 性能优化
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },
-  // 安全头部
-  async headers() {
+  headers: async () => {
     return [
       {
         source: '/(.*)',
@@ -31,6 +32,6 @@ const nextConfig = {
       },
     ];
   },
-}
+};
 
-module.exports = nextConfig 
+module.exports = nextConfig; 

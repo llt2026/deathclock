@@ -2,113 +2,95 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "../../../store/auth";
+import { toast } from "../../../lib/toast";
 
-function isValidEmail(email: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
-export default function AuthRequestModal() {
+export default function AuthRequestPage() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [sent, setSent] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
   const router = useRouter();
   const { signInWithMagicLink } = useAuthStore();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMsg("");
-    if (!isValidEmail(email)) {
-      setErrorMsg("Please enter a valid email address");
+    
+    if (!email.trim()) {
+      toast.error("Please enter your email address");
       return;
     }
 
     setIsLoading(true);
     try {
       await signInWithMagicLink(email);
-      setSent(true);
+      toast.success("Magic link sent! Check your email.");
+      router.push("/auth/verify");
     } catch (error) {
-      setErrorMsg("Failed to send magic link. Please try again later.");
-      console.error(error);
+      console.error("Auth error:", error);
+      toast.error("Failed to send magic link. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (sent) {
-    return (
-      <main className="flex flex-col items-center justify-center min-h-screen gap-6 px-4">
-        <div className="text-center max-w-md">
-          <h1 className="text-3xl font-display mb-4">Check Your Email</h1>
-          <p className="text-accent mb-6">
-            We've sent a magic link to <strong>{email}</strong>. 
-            Click the link to sign in instantly.
-          </p>
-          <div className="space-y-3">
-            <button
-              onClick={() => setSent(false)}
-              className="w-full px-4 py-2 text-accent hover:text-white transition"
-            >
-              ← Send to different email
-            </button>
-            <button
-              onClick={() => router.push("/")}
-              className="w-full px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition"
-            >
-              Continue as Guest
-            </button>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen gap-6 px-4">
-      <div className="text-center">
-        <h1 className="text-3xl font-display mb-2">Sign In</h1>
-        <p className="text-accent">
-          Enter your email to receive a magic link. No password required.
-        </p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-2">Email Address</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400"
-          />
+    <main className="flex items-center justify-center min-h-screen p-6">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold mb-2">Sign in to More Minutes</h1>
+          <p className="text-accent">
+            We'll send you a secure magic link to access your account
+          </p>
         </div>
 
-        {errorMsg && <p className="text-primary text-sm">{errorMsg}</p>}
+        <form onSubmit={handleMagicLink} className="space-y-6">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium mb-2">
+              Email Address
+            </label>
+            <input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="your@email.com"
+              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              required
+            />
+          </div>
 
-        <button
-          type="submit"
-          disabled={isLoading || !email}
-          className="w-full px-4 py-3 bg-primary text-white rounded-md hover:opacity-90 disabled:opacity-50 transition font-medium"
-        >
-          {isLoading ? "Sending..." : "Send Magic Link"}
-        </button>
-      </form>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full px-4 py-3 bg-primary text-white rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+          >
+            {isLoading ? "Sending..." : "Send Magic Link"}
+          </button>
+        </form>
 
-      <div className="text-center space-y-3">
-        <p className="text-sm text-gray-400">
-          By signing in, you agree to our{" "}
-          <a href="/legal" className="text-primary hover:underline">
-            Terms of Service
-          </a>
-        </p>
-        
-        <button
-          onClick={() => router.push("/")}
-          className="text-accent hover:text-white transition"
-        >
-          ← Continue without account
-        </button>
+        <div className="mt-8 text-center">
+          <p className="text-sm text-gray-400 mb-4">
+            No account? Magic links work for both sign-in and sign-up!
+          </p>
+          
+          <button
+            onClick={() => router.back()}
+            className="text-accent hover:text-white transition"
+          >
+            ← Back
+          </button>
+        </div>
+
+        <div className="mt-8 text-xs text-gray-500 text-center">
+          <p>
+            By continuing, you agree to our{" "}
+            <a href="/legal" className="text-primary hover:underline">
+              Terms of Service
+            </a>{" "}
+            and{" "}
+            <a href="/legal" className="text-primary hover:underline">
+              Privacy Policy
+            </a>
+          </p>
+        </div>
       </div>
     </main>
   );
