@@ -20,11 +20,16 @@ export default function ResultPage() {
     }
 
     try {
+      // Get risk factors from localStorage
+      const storedRiskFactors = localStorage.getItem('riskFactors');
+      const riskFactors = storedRiskFactors ? JSON.parse(storedRiskFactors) : {};
+
       // 使用真正的 SSA 2022 + Gompertz 算法
       const lifeCalcResult = calculateLifeExpectancy({
         dob: user.dob,
         sex: user.sex,
         userUid: user.id,
+        riskFactors,
       });
 
       const predictionData = {

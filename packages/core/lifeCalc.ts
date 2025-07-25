@@ -5,10 +5,18 @@
 
 import lifeTables from './data/ssa2022.json';
 
+export interface RiskFactors {
+  smoking?: boolean;
+  drinking?: boolean;
+  sedentary?: boolean;
+  stress?: boolean;
+}
+
 export interface LifeInput {
   dob: string; // YYYY-MM-DD format
   sex: 'male' | 'female';
   userUid?: string; // For deterministic seed
+  riskFactors?: RiskFactors;
 }
 
 export interface LifePrediction {
@@ -84,6 +92,32 @@ function getMortalityRate(age: number, sex: 'male' | 'female'): number {
 }
 
 /**
+ * Calculate risk adjustment factor based on lifestyle factors
+ */
+function calculateRiskAdjustment(riskFactors: RiskFactors = {}): number {
+  let adjustment = 1.0;
+  
+  // Evidence-based risk factor adjustments
+  if (riskFactors.smoking) {
+    adjustment *= 0.88; // Smoking reduces life expectancy by ~12%
+  }
+  
+  if (riskFactors.drinking) {
+    adjustment *= 0.95; // Heavy drinking reduces by ~5%
+  }
+  
+  if (riskFactors.sedentary) {
+    adjustment *= 0.93; // Sedentary lifestyle reduces by ~7%
+  }
+  
+  if (riskFactors.stress) {
+    adjustment *= 0.97; // Chronic stress reduces by ~3%
+  }
+  
+  return adjustment;
+}
+
+/**
  * Apply Gompertz mortality model
  */
 function applyGompertzModel(baseRate: number, age: number, seed: number): number {
@@ -99,10 +133,11 @@ function applyGompertzModel(baseRate: number, age: number, seed: number): number
  * Calculate life expectancy using Monte Carlo simulation
  */
 export function calculateLifeExpectancy(input: LifeInput): LifePrediction {
-  const { dob, sex, userUid = 'anonymous' } = input;
+  const { dob, sex, userUid = 'anonymous', riskFactors = {} } = input;
   
   const currentAge = calculateAge(dob);
   const seed = generateSeed(userUid, dob);
+  const riskAdjustment = calculateRiskAdjustment(riskFactors);
   
   // Get base mortality rate
   const baseMortalityRate = getMortalityRate(currentAge, sex);
@@ -121,7 +156,7 @@ export function calculateLifeExpectancy(input: LifeInput): LifePrediction {
   
   // Apply Gompertz adjustment to remaining years
   const gompertzAdjustment = 1 - (adjustedRate * 0.1); // Small adjustment based on mortality rate
-  const adjustedYears = remainingYears * gompertzAdjustment;
+  const adjustedYears = remainingYears * gompertzAdjustment * riskAdjustment;
   
   // Calculate predicted death date
   const today = new Date();

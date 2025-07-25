@@ -1,40 +1,85 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "../../store/auth";
 import { trackEvent } from "../../lib/analytics";
+
+interface RiskFactors {
+  smoking: boolean;
+  drinking: boolean;
+  sedentary: boolean;
+  stress: boolean;
+}
 
 export default function CalcPage() {
   const { getAppUser, updateUserMetadata } = useAuthStore();
   const user = getAppUser();
   const router = useRouter();
 
-  const [dob, setDob] = useState(user?.dob || "");
+  const [birthMonth, setBirthMonth] = useState<string>("");
+  const [birthDay, setBirthDay] = useState<string>("");
+  const [birthYear, setBirthYear] = useState<string>("");
   const [sex, setSex] = useState<"male" | "female" | "">(user?.sex || "");
+  const [riskFactors, setRiskFactors] = useState<RiskFactors>({
+    smoking: false,
+    drinking: false,
+    sedentary: false,
+    stress: false
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Initialize from existing user data
+  useEffect(() => {
+    if (user?.dob) {
+      const date = new Date(user.dob);
+      setBirthMonth(String(date.getMonth() + 1).padStart(2, '0'));
+      setBirthDay(String(date.getDate()).padStart(2, '0'));
+      setBirthYear(String(date.getFullYear()));
+    }
+  }, [user?.dob]);
+
+  const handleRiskChange = (factor: keyof RiskFactors) => {
+    setRiskFactors(prev => ({
+      ...prev,
+      [factor]: !prev[factor]
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!dob || !sex) {
-      alert("Please fill in all fields");
+    if (!birthMonth || !birthDay || !birthYear || !sex) {
+      alert("Please fill in all required fields");
       return;
     }
 
+    // Validate date
+    const date = new Date(parseInt(birthYear), parseInt(birthMonth) - 1, parseInt(birthDay));
+    if (date > new Date()) {
+      alert("Please enter a valid birth date");
+      return;
+    }
+
+    const dob = `${birthYear}-${birthMonth.padStart(2, '0')}-${birthDay.padStart(2, '0')}`;
+    
     setIsSubmitting(true);
 
     try {
-      // 更新用户元数据
+      // Update user metadata
       await updateUserMetadata({ dob, sex });
 
-      // 埋点
+      // Save risk factors to localStorage for use in result page
+      localStorage.setItem('riskFactors', JSON.stringify(riskFactors));
+
+      // Track analytics
       trackEvent("calculation_started", {
-        birth_year: new Date(dob).getFullYear(),
+        birth_year: parseInt(birthYear),
         sex,
-        user_type: user ? "authenticated" : "guest"
+        user_type: user ? "authenticated" : "guest",
+        risk_factors: riskFactors
       });
 
-      // 跳转到结果页面
+      // Navigate to results
       router.push("/result");
     } catch (error) {
       console.error("Failed to update user info:", error);
@@ -43,6 +88,15 @@ export default function CalcPage() {
       setIsSubmitting(false);
     }
   };
+
+  const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 100 }, (_, i) => currentYear - i);
+  const days = Array.from({ length: 31 }, (_, i) => i + 1);
 
   return (
     <div className="min-h-screen bg-dark text-white flex items-center justify-center p-4">
@@ -57,29 +111,61 @@ export default function CalcPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Date of Birth */}
+          {/* Date of Birth - American Style */}
           <div>
-            <label htmlFor="dob" className="block text-sm font-medium mb-2">
-              Date of Birth
+            <label className="block text-sm font-medium mb-2">
+              When were you born? *
             </label>
-            <input
-              type="date"
-              id="dob"
-              value={dob}
-              onChange={(e) => setDob(e.target.value)}
-              max={new Date().toISOString().split('T')[0]}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-white"
-              required
-            />
+            <div className="grid grid-cols-3 gap-2">
+              <select
+                value={birthMonth}
+                onChange={(e) => setBirthMonth(e.target.value)}
+                className="px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-white text-sm"
+                required
+              >
+                <option value="">Month</option>
+                {months.map((month, index) => (
+                  <option key={month} value={String(index + 1).padStart(2, '0')}>
+                    {month}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={birthDay}
+                onChange={(e) => setBirthDay(e.target.value)}
+                className="px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-white text-sm"
+                required
+              >
+                <option value="">Day</option>
+                {days.map(day => (
+                  <option key={day} value={String(day).padStart(2, '0')}>
+                    {day}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={birthYear}
+                onChange={(e) => setBirthYear(e.target.value)}
+                className="px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-white text-sm"
+                required
+              >
+                <option value="">Year</option>
+                {years.map(year => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Gender */}
           <div>
             <label className="block text-sm font-medium mb-2">
-              Gender
+              Gender *
             </label>
             <div className="flex gap-4">
-              <label className="flex items-center">
+              <label className="flex items-center cursor-pointer">
                 <input
                   type="radio"
                   value="male"
@@ -89,7 +175,7 @@ export default function CalcPage() {
                 />
                 Male
               </label>
-              <label className="flex items-center">
+              <label className="flex items-center cursor-pointer">
                 <input
                   type="radio"
                   value="female"
@@ -98,6 +184,51 @@ export default function CalcPage() {
                   className="mr-2 text-primary focus:ring-primary"
                 />
                 Female
+              </label>
+            </div>
+          </div>
+
+          {/* Risk Factors */}
+          <div>
+            <label className="block text-sm font-medium mb-3">
+              Lifestyle Factors (optional)
+            </label>
+            <div className="space-y-2">
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={riskFactors.smoking}
+                  onChange={() => handleRiskChange('smoking')}
+                  className="mr-3 text-primary focus:ring-primary"
+                />
+                <span className="text-sm">I smoke regularly</span>
+              </label>
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={riskFactors.drinking}
+                  onChange={() => handleRiskChange('drinking')}
+                  className="mr-3 text-primary focus:ring-primary"
+                />
+                <span className="text-sm">I drink alcohol frequently</span>
+              </label>
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={riskFactors.sedentary}
+                  onChange={() => handleRiskChange('sedentary')}
+                  className="mr-3 text-primary focus:ring-primary"
+                />
+                <span className="text-sm">I rarely exercise</span>
+              </label>
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={riskFactors.stress}
+                  onChange={() => handleRiskChange('stress')}
+                  className="mr-3 text-primary focus:ring-primary"
+                />
+                <span className="text-sm">I'm often stressed</span>
               </label>
             </div>
           </div>
