@@ -23,7 +23,7 @@ export default async function handler(request: Request): Promise<Response> {
 
     // 发送 Magic Link 邮件
     const { data, error } = await resend.emails.send({
-      from: 'More Minutes <noreply@research.nthjz.com>',
+      from: 'More Minutes <noreply@mail.moreminutes.life>',
       to: [email],
       subject: 'Sign in to More Minutes',
       html: `
