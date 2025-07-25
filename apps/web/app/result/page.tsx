@@ -14,7 +14,27 @@ export default function ResultPage() {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
-    if (!user || !user.dob || !user.sex) {
+    // Get user data from auth store or localStorage
+    let dob: string | undefined;
+    let sex: 'male' | 'female' | undefined;
+    let userId = 'guest';
+    
+    if (user?.dob && user?.sex) {
+      // Use authenticated user data
+      dob = user.dob;
+      sex = user.sex;
+      userId = user.id;
+    } else {
+      // Try to get from localStorage for guest users
+      const storedData = localStorage.getItem('userBirthData');
+      if (storedData) {
+        const parsedData = JSON.parse(storedData);
+        dob = parsedData.dob;
+        sex = parsedData.sex;
+      }
+    }
+    
+    if (!dob || !sex) {
       router.push("/calc");
       return;
     }
@@ -26,9 +46,9 @@ export default function ResultPage() {
 
       // 使用真正的 SSA 2022 + Gompertz 算法
       const lifeCalcResult = calculateLifeExpectancy({
-        dob: user.dob,
-        sex: user.sex,
-        userUid: user.id,
+        dob,
+        sex,
+        userUid: userId,
         riskFactors,
       });
 

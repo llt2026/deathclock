@@ -65,8 +65,18 @@ export default function CalcPage() {
     setIsSubmitting(true);
 
     try {
-      // Update user metadata
-      await updateUserMetadata({ dob, sex });
+      // Save data locally first
+      localStorage.setItem('userBirthData', JSON.stringify({ dob, sex }));
+      
+      // Update user metadata if logged in
+      if (user) {
+        try {
+          await updateUserMetadata({ dob, sex });
+        } catch (error) {
+          console.warn('Failed to sync to cloud, but data saved locally:', error);
+          // Continue anyway - we have local data
+        }
+      }
 
       // Save risk factors to localStorage for use in result page
       localStorage.setItem('riskFactors', JSON.stringify(riskFactors));
