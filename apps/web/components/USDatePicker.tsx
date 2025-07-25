@@ -90,11 +90,22 @@ function USCalendar({
   const today = new Date();
   const currentValue = value ? new Date(value + "T00:00:00") : today;
   const [viewDate, setViewDate] = useState(new Date(currentValue.getFullYear(), currentValue.getMonth(), 1));
+  const [showYearPicker, setShowYearPicker] = useState(false);
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
 
   const monthNames = [
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"
   ];
+
+  const monthNamesShort = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+  ];
+
+  // 生成年份范围 (1900-2024)
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: currentYear - 1899 }, (_, i) => currentYear - i);
 
   const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
   const firstDayOfMonth = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).getDay();
@@ -105,6 +116,16 @@ function USCalendar({
 
   const nextMonth = () => {
     setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1));
+  };
+
+  const selectYear = (year: number) => {
+    setViewDate(new Date(year, viewDate.getMonth(), 1));
+    setShowYearPicker(false);
+  };
+
+  const selectMonth = (month: number) => {
+    setViewDate(new Date(viewDate.getFullYear(), month, 1));
+    setShowMonthPicker(false);
   };
 
   const selectDate = (day: number) => {
@@ -122,6 +143,76 @@ function USCalendar({
     return false;
   };
 
+  if (showYearPicker) {
+    return (
+      <div className="p-4 w-80 bg-white text-black">
+        <div className="flex justify-between items-center mb-4">
+          <button
+            onClick={() => setShowYearPicker(false)}
+            className="text-gray-600 hover:text-black p-1"
+            type="button"
+          >
+            ← Back
+          </button>
+          <span className="font-medium text-lg">Select Year</span>
+          <div></div>
+        </div>
+        
+        <div className="grid grid-cols-4 gap-2 max-h-64 overflow-y-auto">
+          {years.map((year) => (
+            <button
+              key={year}
+              onClick={() => selectYear(year)}
+              className={`p-2 text-sm rounded transition ${
+                year === viewDate.getFullYear()
+                  ? "bg-blue-600 text-white"
+                  : "hover:bg-gray-100 text-black"
+              }`}
+              type="button"
+            >
+              {year}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (showMonthPicker) {
+    return (
+      <div className="p-4 w-80 bg-white text-black">
+        <div className="flex justify-between items-center mb-4">
+          <button
+            onClick={() => setShowMonthPicker(false)}
+            className="text-gray-600 hover:text-black p-1"
+            type="button"
+          >
+            ← Back
+          </button>
+          <span className="font-medium text-lg">{viewDate.getFullYear()}</span>
+          <div></div>
+        </div>
+        
+        <div className="grid grid-cols-3 gap-2">
+          {monthNamesShort.map((month, index) => (
+            <button
+              key={month}
+              onClick={() => selectMonth(index)}
+              className={`p-3 text-sm rounded transition ${
+                index === viewDate.getMonth()
+                  ? "bg-blue-600 text-white"
+                  : "hover:bg-gray-100 text-black"
+              }`}
+              type="button"
+            >
+              {month}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 w-80 bg-white text-black">
       {/* Header */}
@@ -133,9 +224,22 @@ function USCalendar({
         >
           ←
         </button>
-        <span className="font-medium text-lg">
-          {monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}
-        </span>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowMonthPicker(true)}
+            className="font-medium text-lg hover:bg-gray-100 px-2 py-1 rounded"
+            type="button"
+          >
+            {monthNames[viewDate.getMonth()]}
+          </button>
+          <button
+            onClick={() => setShowYearPicker(true)}
+            className="font-medium text-lg hover:bg-gray-100 px-2 py-1 rounded"
+            type="button"
+          >
+            {viewDate.getFullYear()}
+          </button>
+        </div>
         <button
           onClick={nextMonth}
           className="text-gray-600 hover:text-black p-1"

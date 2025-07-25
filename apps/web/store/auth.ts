@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabase';
+import { syncUser } from '../lib/api';
 import type { User, Session } from '@supabase/supabase-js';
 
 interface AuthState {
@@ -16,6 +17,7 @@ interface AuthState {
   signInWithMagicLink: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   initAuth: () => Promise<void>;
+  syncUserToDatabase: (user: User) => Promise<void>;
 }
 
 // 生成设备ID用于游客模式
@@ -62,15 +64,44 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
+      syncUserToDatabase: async (user: User) => {
+        try {
+          const userData = {
+            id: user.id,
+            email: user.email!,
+            display_name: user.user_metadata?.display_name || user.email?.split('@')[0],
+            dob: user.user_metadata?.dob,
+            sex: user.user_metadata?.sex,
+          };
+
+          const result = await syncUser(userData);
+          if (!result.success) {
+            console.error('User sync failed:', result.error);
+          }
+        } catch (error) {
+          console.error('User sync error:', error);
+        }
+      },
+
       initAuth: async () => {
         try {
           // 获取当前会话
           const { data: { session } } = await supabase.auth.getSession();
           set({ session, user: session?.user ?? null });
 
+          // 如果用户已登录，同步到数据库
+          if (session?.user) {
+            get().syncUserToDatabase(session.user);
+          }
+
           // 监听认证状态变化
-          supabase.auth.onAuthStateChange((event, session) => {
+          supabase.auth.onAuthStateChange(async (event, session) => {
             set({ session, user: session?.user ?? null });
+            
+            // 用户登录时同步到数据库
+            if (event === 'SIGNED_IN' && session?.user) {
+              await get().syncUserToDatabase(session.user);
+            }
           });
         } catch (error) {
           console.error('Auth init error:', error);

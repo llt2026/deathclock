@@ -2,22 +2,25 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "../../store/auth";
+import { getVaultList, getVaultDownloadUrl } from "../../lib/api";
 import { PinManager } from "../../lib/crypto";
+import { toast } from "../../lib/toast";
 
 interface VaultItem {
   id: string;
   type: "audio" | "video" | "text";
-  name: string;
+  storagePath: string;
   trigger: "fixed_date" | "inactivity";
   triggerValue: string;
   createdAt: string;
-  size: number;
+  delivered: boolean;
 }
 
 export default function VaultDashboard() {
   const [vaultItems, setVaultItems] = useState<VaultItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPinSetup, setShowPinSetup] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const router = useRouter();
   const { user, session } = useAuthStore();
 
@@ -27,199 +30,258 @@ export default function VaultDashboard() {
       setShowPinSetup(true);
     }
     
-    // 模拟加载 vault 数据
-    setTimeout(() => {
-      setVaultItems([
-        {
-          id: "1",
-          type: "audio",
-          name: "Final Message to Family",
-          trigger: "fixed_date",
-          triggerValue: "2025-12-31",
-          createdAt: "2025-01-15",
-          size: 2.1, // MB
-        },
-        {
-          id: "2", 
-          type: "text",
-          name: "Passwords & Important Info",
-          trigger: "inactivity",
-          triggerValue: "6 months",
-          createdAt: "2025-01-10",
-          size: 0.05,
-        },
-      ]);
-      setLoading(false);
-    }, 1000);
+    loadVaultItems();
   }, [user]);
+
+  const loadVaultItems = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const result = await getVaultList(user.id);
+      if (result.success) {
+        setVaultItems(result.data || []);
+      } else {
+        toast.error("Failed to load vault items");
+      }
+    } catch (error) {
+      console.error("Error loading vault items:", error);
+      toast.error("Error loading vault items");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownload = async (item: VaultItem) => {
+    if (!user) return;
+
+    setDownloadingId(item.id);
+    try {
+      const result = await getVaultDownloadUrl(item.id, user.id);
+      if (result.success && result.data?.downloadUrl) {
+        // 创建下载链接
+        const link = document.createElement('a');
+        link.href = result.data.downloadUrl;
+        link.download = result.data.fileName || 'vault-file';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast.success("Download started");
+      } else {
+        toast.error("Failed to generate download link");
+      }
+    } catch (error) {
+      console.error("Download error:", error);
+      toast.error("Download failed");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   const handleCreateNew = () => {
     if (!user) {
       router.push("/auth/request");
       return;
     }
-    
+
     if (!PinManager.hasPin()) {
       setShowPinSetup(true);
       return;
     }
-    
+
     router.push("/vault/record");
   };
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case "audio": return "🎙️";
-      case "video": return "🎥";
-      case "text": return "📝";
-      default: return "📄";
-    }
+  const handlePinSetup = (pin: string) => {
+    PinManager.savePin(pin);
+    setShowPinSetup(false);
+    toast.success("PIN set successfully");
   };
 
-  const formatFileSize = (sizeInMB: number) => {
-    if (sizeInMB < 1) {
-      return `${(sizeInMB * 1024).toFixed(0)} KB`;
-    }
-    return `${sizeInMB.toFixed(1)} MB`;
-  };
-
-  const totalSize = vaultItems.reduce((sum, item) => sum + item.size, 0);
-  const storageLimit = user ? 1024 : 50; // Pro: 1GB, Free: 50MB
+  if (!user) {
+    return (
+      <main className="flex flex-col items-center justify-center min-h-screen gap-6 px-4">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold mb-4">Legacy Vault 🔒</h1>
+          <p className="text-gray-300 mb-6">
+            Securely store messages, videos, and important information to be delivered after you're gone.
+          </p>
+          <button
+            onClick={() => router.push("/auth/request")}
+            className="px-6 py-3 bg-primary text-white rounded-md hover:opacity-90 transition"
+          >
+            Sign In to Access Vault
+          </button>
+        </div>
+      </main>
+    );
+  }
 
   if (showPinSetup) {
-    return <PinSetupModal onComplete={() => setShowPinSetup(false)} />;
+    return <PinSetupModal onSetPin={handlePinSetup} onCancel={() => setShowPinSetup(false)} />;
+  }
+
+  if (loading) {
+    return (
+      <main className="flex items-center justify-center min-h-screen">
+        <p className="text-accent">Loading your vault...</p>
+      </main>
+    );
   }
 
   return (
-    <main className="flex flex-col min-h-screen gap-6 py-8 px-4">
-      <div className="text-center">
-        <h1 className="text-4xl font-display mb-2">Legacy Vault</h1>
-        <p className="text-accent">
-          Secure digital messages delivered when you're no longer here.
-        </p>
-      </div>
-
-      {/* 存储使用情况 */}
-      <div className="bg-gray-800 rounded-lg p-4">
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-sm text-gray-300">Storage Used</span>
-          <span className="text-sm">
-            {formatFileSize(totalSize)} / {formatFileSize(storageLimit)}
-          </span>
-        </div>
-        <div className="w-full bg-gray-700 rounded-full h-2">
-          <div
-            className="bg-primary h-2 rounded-full transition-all"
-            style={{ width: `${Math.min((totalSize / storageLimit) * 100, 100)}%` }}
-          ></div>
-        </div>
-        {!user && (
-          <p className="text-xs text-gray-400 mt-2">
-            Sign in to unlock 1GB Pro storage
-          </p>
-        )}
-      </div>
-
-      {/* Vault 列表 */}
-      <div className="space-y-4">
-        {loading ? (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-            <p className="text-accent">Loading your vault...</p>
+    <main className="min-h-screen p-6">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Legacy Vault 🔒</h1>
+            <p className="text-gray-300">
+              Secure storage for your final messages and important documents
+            </p>
           </div>
-        ) : vaultItems.length === 0 ? (
+          <button
+            onClick={handleCreateNew}
+            className="px-6 py-3 bg-primary text-white rounded-md hover:opacity-90 transition"
+          >
+            + Add New Item
+          </button>
+        </div>
+
+        {vaultItems.length === 0 ? (
           <div className="text-center py-12">
-            <div className="text-6xl mb-4">🔒</div>
-            <h3 className="text-xl font-medium mb-2">Your Vault is Empty</h3>
-            <p className="text-accent mb-6">
-              Create your first digital legacy message.
+            <div className="text-6xl mb-4">📦</div>
+            <h2 className="text-xl mb-2">Your vault is empty</h2>
+            <p className="text-gray-400 mb-6">
+              Start by creating your first legacy item. Messages, videos, or important documents.
             </p>
             <button
               onClick={handleCreateNew}
               className="px-6 py-3 bg-primary text-white rounded-md hover:opacity-90 transition"
             >
-              Create First Message
+              Create First Item
             </button>
           </div>
         ) : (
-          <>
+          <div className="grid gap-4">
             {vaultItems.map((item) => (
-              <div
-                key={item.id}
-                className="bg-gray-800 rounded-lg p-4 hover:bg-gray-750 transition cursor-pointer"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{getTypeIcon(item.type)}</span>
-                    <div>
-                      <h3 className="font-medium">{item.name}</h3>
-                      <p className="text-sm text-gray-400">
-                        {item.trigger === "fixed_date" 
-                          ? `Deliver on ${item.triggerValue}`
-                          : `Deliver after ${item.triggerValue} of inactivity`
-                        }
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-400">{formatFileSize(item.size)}</p>
-                    <p className="text-xs text-gray-500">{item.createdAt}</p>
-                  </div>
-                </div>
-              </div>
+              <VaultItemCard 
+                key={item.id} 
+                item={item} 
+                onDownload={() => handleDownload(item)}
+                isDownloading={downloadingId === item.id}
+              />
             ))}
-            
-            <button
-              onClick={handleCreateNew}
-              className="w-full py-4 border-2 border-dashed border-gray-600 rounded-lg hover:border-gray-500 transition text-gray-400 hover:text-white"
-            >
-              + Add New Message
-            </button>
-          </>
+          </div>
         )}
+
+        <div className="mt-8 p-4 bg-gray-800 rounded-lg">
+          <h3 className="font-semibold mb-2">🔐 Security Notice</h3>
+          <p className="text-sm text-gray-300">
+            All files are encrypted with AES-256-GCM using your PIN. Your PIN is never stored on our servers.
+            If you forget your PIN, your vault items cannot be recovered.
+          </p>
+        </div>
       </div>
     </main>
   );
 }
 
-// PIN 设置模态框组件
-function PinSetupModal({ onComplete }: { onComplete: () => void }) {
+function VaultItemCard({ 
+  item, 
+  onDownload, 
+  isDownloading 
+}: { 
+  item: VaultItem; 
+  onDownload: () => void;
+  isDownloading: boolean;
+}) {
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case "audio": return "🎵";
+      case "video": return "🎬";
+      case "text": return "📝";
+      default: return "📄";
+    }
+  };
+
+  const getTriggerText = (trigger: string, value: string) => {
+    if (trigger === "fixed_date") {
+      return `Deliver on ${new Date(value).toLocaleDateString()}`;
+    }
+    return `Deliver after ${value} of inactivity`;
+  };
+
+  return (
+    <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
+      <div className="flex justify-between items-start mb-4">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">{getTypeIcon(item.type)}</span>
+          <div>
+            <h3 className="font-semibold">{item.storagePath.split('/').pop()}</h3>
+            <p className="text-sm text-gray-400 capitalize">{item.type} file</p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={onDownload}
+            disabled={isDownloading}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition disabled:opacity-50"
+          >
+            {isDownloading ? "Downloading..." : "Download"}
+          </button>
+        </div>
+      </div>
+
+      <div className="text-sm text-gray-300 space-y-1">
+        <p>📅 {getTriggerText(item.trigger, item.triggerValue)}</p>
+        <p>📆 Created: {new Date(item.createdAt).toLocaleDateString()}</p>
+        <p>📊 Status: {item.delivered ? "✅ Delivered" : "⏳ Pending"}</p>
+      </div>
+    </div>
+  );
+}
+
+function PinSetupModal({ onSetPin, onCancel }: { onSetPin: (pin: string) => void; onCancel: () => void }) {
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [error, setError] = useState("");
 
-  const handleSetPin = () => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (pin.length < 4) {
+      setError("PIN must be at least 4 digits");
+      return;
+    }
+    
     if (pin !== confirmPin) {
       setError("PINs don't match");
       return;
     }
     
-    if (!/^\d{4,6}$/.test(pin)) {
-      setError("PIN must be 4-6 digits");
-      return;
-    }
-    
-    PinManager.savePin(pin);
-    onComplete();
+    onSetPin(pin);
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
-        <h2 className="text-xl font-display mb-4">Set Your Vault PIN</h2>
-        <p className="text-sm text-gray-300 mb-6">
-          Create a 4-6 digit PIN to encrypt your legacy messages. This PIN is stored only on your device.
+    <main className="flex items-center justify-center min-h-screen p-4">
+      <div className="bg-gray-800 p-8 rounded-lg max-w-md w-full">
+        <h2 className="text-2xl font-bold mb-4">Set Your Vault PIN</h2>
+        <p className="text-gray-300 mb-6">
+          Create a 4-digit PIN to encrypt your vault items. This PIN will be required to access your files.
         </p>
         
-        <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-2">PIN (4-6 digits)</label>
+            <label className="block text-sm font-medium mb-2">Enter PIN</label>
             <input
               type="password"
               value={pin}
-              onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white text-center tracking-widest"
-              placeholder="Enter PIN"
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              className="w-full p-3 bg-gray-700 border border-gray-600 rounded-md text-center text-2xl tracking-widest"
+              placeholder="••••"
               maxLength={6}
             />
           </div>
@@ -229,26 +291,36 @@ function PinSetupModal({ onComplete }: { onComplete: () => void }) {
             <input
               type="password"
               value={confirmPin}
-              onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white text-center tracking-widest"
-              placeholder="Confirm PIN"
+              onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              className="w-full p-3 bg-gray-700 border border-gray-600 rounded-md text-center text-2xl tracking-widest"
+              placeholder="••••"
               maxLength={6}
             />
           </div>
           
-          {error && (
-            <p className="text-primary text-sm">{error}</p>
-          )}
+          {error && <p className="text-red-400 text-sm">{error}</p>}
           
-          <button
-            onClick={handleSetPin}
-            disabled={!pin || !confirmPin}
-            className="w-full px-4 py-3 bg-primary text-white rounded-md hover:opacity-90 disabled:opacity-50 transition"
-          >
-            Set PIN & Secure Vault
-          </button>
-        </div>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="flex-1 px-4 py-3 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex-1 px-4 py-3 bg-primary text-white rounded-md hover:opacity-90 transition"
+            >
+              Set PIN
+            </button>
+          </div>
+        </form>
+        
+        <p className="text-xs text-gray-500 mt-4">
+          ⚠️ Important: If you forget your PIN, your vault items cannot be recovered.
+        </p>
       </div>
-    </div>
+    </main>
   );
 } 

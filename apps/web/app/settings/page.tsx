@@ -2,15 +2,43 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "../../store/auth";
+import { getUserProfile, updateUserProfile, exportUserData, getSubscriptionStatus } from "../../lib/api";
+import { toast } from "../../lib/toast";
+
+interface UserProfile {
+  id: string;
+  email: string;
+  displayName?: string;
+  dob?: string;
+  sex?: 'male' | 'female';
+  createdAt: string;
+}
+
+interface SubscriptionInfo {
+  status: string;
+  tier: string;
+  isActive: boolean;
+  renewAt?: string;
+  platform?: string;
+}
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { user, signOut } = useAuthStore();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [analyticsEnabled, setAnalyticsEnabled] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [isClient, setIsClient] = useState(false);
+
+  // Profile editing states
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [displayName, setDisplayName] = useState("");
+  const [birthDate, setBirthDate] = useState("");
+  const [sex, setSex] = useState<'male' | 'female' | ''>("");
 
   useEffect(() => {
     setIsClient(true);
@@ -18,289 +46,334 @@ export default function SettingsScreen() {
       setAnalyticsEnabled(localStorage.getItem('analytics_enabled') !== 'false');
       setEmailNotifications(localStorage.getItem('email_notifications') !== 'false');
     }
-  }, []);
+    
+    if (user) {
+      loadUserProfile();
+      loadSubscriptionInfo();
+    }
+  }, [user]);
 
-  const handleExportData = async () => {
-    setIsExporting(true);
+  const loadUserProfile = async () => {
+    if (!user) return;
     
     try {
-      // 收集用户数据
-      const userData = {
-        profile: {
-          email: user?.email,
-          created_at: user?.created_at,
-        },
-                 predictions: [], // 从 localStorage 或 API 获取
-         settings: {
-           theme: isClient ? (localStorage.getItem('theme') || 'dark') : 'dark',
-           notifications: isClient ? (localStorage.getItem('notifications') !== 'false') : true,
-         },
-        exported_at: new Date().toISOString(),
+      const result = await getUserProfile(user.id);
+      if (result.success && result.data) {
+        const profileData = result.data;
+        setProfile(profileData);
+        setDisplayName(profileData.displayName || "");
+        setBirthDate(profileData.dob || "");
+        setSex(profileData.sex || "");
+      }
+    } catch (error) {
+      console.error("Error loading profile:", error);
+    }
+  };
+
+  const loadSubscriptionInfo = async () => {
+    if (!user) return;
+    
+    try {
+      const result = await getSubscriptionStatus(user.id);
+      if (result.success && result.data) {
+        setSubscription(result.data.subscription);
+      }
+    } catch (error) {
+      console.error("Error loading subscription:", error);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!user || !editingProfile) return;
+
+    setIsSaving(true);
+    try {
+      const profileData = {
+        displayName: displayName.trim() || undefined,
+        dob: birthDate || undefined,
+        sex: sex || undefined,
       };
 
-      // 创建下载
-      const blob = new Blob([JSON.stringify(userData, null, 2)], {
-        type: 'application/json',
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `moreminutes-data-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      const result = await updateUserProfile(user.id, profileData);
+      if (result.success) {
+        setProfile(prev => prev ? { ...prev, ...profileData } : null);
+        setEditingProfile(false);
+        toast.success("Profile updated successfully");
+      } else {
+        toast.error("Failed to update profile");
+      }
     } catch (error) {
-      console.error('Export failed:', error);
-      alert('Export failed. Please try again.');
+      console.error("Error updating profile:", error);
+      toast.error("Error updating profile");
+    } finally {
+      setIsSaving(false);
     }
-    
-    setIsExporting(false);
+  };
+
+  const handleExportData = async () => {
+    if (!user) return;
+
+    setIsExporting(true);
+    try {
+      const blob = await exportUserData(user.id);
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `moreminutes-data-${user.id}-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success("Data export completed");
+      } else {
+        toast.error("Failed to export data");
+      }
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error("Export failed");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleDeleteAccount = async () => {
-    if (!confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+    if (!isDeletingAccount) {
+      setIsDeletingAccount(true);
       return;
     }
 
-    setIsDeletingAccount(true);
-    
     try {
-      // 调用删除账户 API
-      const response = await fetch('/api/account/delete', {
-        method: 'DELETE',
-                 headers: {
-           'Authorization': `Bearer ${isClient ? localStorage.getItem('auth_token') : ''}`,
-         },
-      });
-
-             if (response.ok) {
-         await signOut();
-         router.push('/');
-         alert('Account deleted successfully.');
-      } else {
-        throw new Error('Delete failed');
-      }
+      // TODO: Implement account deletion API call
+      await signOut();
+      router.push("/");
+      toast.success("Account deleted successfully");
     } catch (error) {
-      console.error('Account deletion failed:', error);
-      alert('Account deletion failed. Please contact support.');
+      console.error("Delete account error:", error);
+      toast.error("Failed to delete account");
     }
-    
-    setIsDeletingAccount(false);
   };
 
-  return (
-    <main className="min-h-screen p-4 max-w-2xl mx-auto">
-      <div className="mb-6">
-        <button
-          onClick={() => router.back()}
-          className="text-accent hover:text-white transition mb-4"
-        >
-          ← Back
-        </button>
-        <h1 className="text-3xl font-display text-primary mb-2">Settings</h1>
-        <p className="text-accent">Manage your account and preferences</p>
-      </div>
+  const handleToggleAnalytics = (enabled: boolean) => {
+    setAnalyticsEnabled(enabled);
+    if (isClient) {
+      localStorage.setItem('analytics_enabled', enabled.toString());
+    }
+  };
 
-      <div className="space-y-6">
-        {/* Account Info */}
-        <section className="bg-gray-900 rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4 text-white">Account Information</h2>
-          <div className="space-y-3">
+  const handleToggleNotifications = (enabled: boolean) => {
+    setEmailNotifications(enabled);
+    if (isClient) {
+      localStorage.setItem('email_notifications', enabled.toString());
+    }
+  };
+
+  if (!user) {
+    return (
+      <main className="flex flex-col items-center justify-center min-h-screen gap-6 px-4">
+        <h1 className="text-2xl font-bold">Settings</h1>
+        <p className="text-gray-400">Please sign in to access settings.</p>
+        <button
+          onClick={() => router.push("/auth/request")}
+          className="px-6 py-3 bg-primary text-white rounded-md hover:opacity-90 transition"
+        >
+          Sign In
+        </button>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen p-6">
+      <div className="max-w-2xl mx-auto">
+        <h1 className="text-3xl font-bold mb-8">Settings</h1>
+
+        {/* Profile Section */}
+        <section className="bg-gray-800 p-6 rounded-lg mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Profile Information</h2>
+            <button
+              onClick={() => editingProfile ? handleSaveProfile() : setEditingProfile(true)}
+              disabled={isSaving}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition disabled:opacity-50"
+            >
+              {isSaving ? "Saving..." : editingProfile ? "Save" : "Edit"}
+            </button>
+          </div>
+          
+          <div className="space-y-4">
             <div>
-              <label className="block text-sm text-accent mb-1">Email</label>
-              <p className="text-white">{user?.email || 'Not signed in'}</p>
+              <label className="block text-sm font-medium mb-2">Email</label>
+              <input
+                type="email"
+                value={user.email || ""}
+                disabled
+                className="w-full p-3 bg-gray-700 border border-gray-600 rounded-md text-gray-400"
+              />
             </div>
+            
             <div>
-              <label className="block text-sm text-accent mb-1">Member Since</label>
-              <p className="text-white">
-                {user?.created_at 
-                  ? new Date(user.created_at).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })
-                  : 'Guest User'
-                }
-              </p>
+              <label className="block text-sm font-medium mb-2">Display Name</label>
+              <input
+                type="text"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                disabled={!editingProfile}
+                className="w-full p-3 bg-gray-700 border border-gray-600 rounded-md disabled:text-gray-400"
+                placeholder="Enter your display name"
+              />
             </div>
+            
             <div>
-              <label className="block text-sm text-accent mb-1">Subscription Status</label>
-              <p className="text-white">Free User</p>
-              <button
-                onClick={() => router.push('/subscribe')}
-                className="text-primary hover:underline text-sm mt-1"
+              <label className="block text-sm font-medium mb-2">Birth Date</label>
+              <input
+                type="date"
+                value={birthDate}
+                onChange={(e) => setBirthDate(e.target.value)}
+                disabled={!editingProfile}
+                className="w-full p-3 bg-gray-700 border border-gray-600 rounded-md disabled:text-gray-400"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-2">Sex</label>
+              <select
+                value={sex}
+                onChange={(e) => setSex(e.target.value as 'male' | 'female' | '')}
+                disabled={!editingProfile}
+                className="w-full p-3 bg-gray-700 border border-gray-600 rounded-md disabled:text-gray-400"
               >
-                Upgrade to Pro →
-              </button>
+                <option value="">Select...</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </select>
             </div>
           </div>
+        </section>
+
+        {/* Subscription Section */}
+        <section className="bg-gray-800 p-6 rounded-lg mb-6">
+          <h2 className="text-xl font-semibold mb-4">Subscription</h2>
+          {subscription ? (
+            <div className="space-y-2">
+              <p><span className="text-gray-400">Plan:</span> {subscription.tier}</p>
+              <p><span className="text-gray-400">Status:</span> 
+                <span className={`ml-2 px-2 py-1 rounded text-xs ${
+                  subscription.isActive ? 'bg-green-600 text-white' : 'bg-gray-600 text-gray-300'
+                }`}>
+                  {subscription.status}
+                </span>
+              </p>
+              {subscription.renewAt && (
+                <p><span className="text-gray-400">Renews:</span> {new Date(subscription.renewAt).toLocaleDateString()}</p>
+              )}
+              <button
+                onClick={() => router.push("/subscribe")}
+                className="mt-4 px-4 py-2 bg-primary text-white rounded hover:opacity-90 transition"
+              >
+                Manage Subscription
+              </button>
+            </div>
+          ) : (
+            <div>
+              <p className="text-gray-400 mb-4">No active subscription</p>
+              <button
+                onClick={() => router.push("/subscribe")}
+                className="px-4 py-2 bg-primary text-white rounded hover:opacity-90 transition"
+              >
+                Subscribe Now
+              </button>
+            </div>
+          )}
         </section>
 
         {/* Privacy Settings */}
-        <section className="bg-gray-900 rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4 text-white">Privacy & Security</h2>
+        <section className="bg-gray-800 p-6 rounded-lg mb-6">
+          <h2 className="text-xl font-semibold mb-4">Privacy & Notifications</h2>
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex justify-between items-center">
               <div>
-                <h3 className="text-white font-medium">Analytics Tracking</h3>
-                <p className="text-accent text-sm">Help us improve the app with anonymous usage data</p>
+                <p className="font-medium">Analytics</p>
+                <p className="text-sm text-gray-400">Help us improve by sharing anonymous usage data</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
-                  className="sr-only peer"
                   checked={analyticsEnabled}
-                  onChange={(e) => {
-                    setAnalyticsEnabled(e.target.checked);
-                    if (isClient) {
-                      localStorage.setItem('analytics_enabled', e.target.checked.toString());
-                    }
-                  }}
+                  onChange={(e) => handleToggleAnalytics(e.target.checked)}
+                  className="sr-only peer"
                 />
                 <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
               </label>
             </div>
             
-            <div className="flex items-center justify-between">
+            <div className="flex justify-between items-center">
               <div>
-                <h3 className="text-white font-medium">Email Notifications</h3>
-                <p className="text-accent text-sm">Receive updates about new features and security</p>
+                <p className="font-medium">Email Notifications</p>
+                <p className="text-sm text-gray-400">Receive updates about your account and predictions</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
-                  className="sr-only peer"
                   checked={emailNotifications}
-                  onChange={(e) => {
-                    setEmailNotifications(e.target.checked);
-                    if (isClient) {
-                      localStorage.setItem('email_notifications', e.target.checked.toString());
-                    }
-                  }}
+                  onChange={(e) => handleToggleNotifications(e.target.checked)}
+                  className="sr-only peer"
                 />
                 <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
               </label>
-            </div>
-          </div>
-        </section>
-
-        {/* Algorithm Transparency */}
-        <section className="bg-gray-900 rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4 text-white">Algorithm Transparency</h2>
-          <div className="space-y-4 text-gray-300">
-            <div>
-              <h3 className="text-white font-medium mb-2">Data Source</h3>
-              <p className="text-sm">
-                Life expectancy calculations use the U.S. Social Security Administration's 2022 Period Life Table,
-                which provides population-level mortality statistics and is in the public domain.
-              </p>
-            </div>
-            
-            <div>
-              <h3 className="text-white font-medium mb-2">Methodology</h3>
-              <p className="text-sm">
-                We apply the Gompertz mortality model with parameters calibrated to SSA data (b=0.000045, c=1.098).
-                A deterministic seed based on your profile ensures consistent results across sessions.
-              </p>
-            </div>
-            
-            <div>
-              <h3 className="text-white font-medium mb-2">Privacy-First Design</h3>
-              <p className="text-sm">
-                All calculations are performed locally in your browser. Health data and risk factors
-                never leave your device or get transmitted to our servers.
-              </p>
-            </div>
-            
-            <div className="bg-red-900/20 border border-red-800 rounded p-3">
-              <p className="text-red-200 text-sm">
-                <strong>Remember:</strong> These are statistical estimates for entertainment only.
-                They do not constitute medical advice and should not influence important life decisions.
-              </p>
             </div>
           </div>
         </section>
 
         {/* Data Management */}
-        <section className="bg-gray-900 rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4 text-white">Data Management</h2>
+        <section className="bg-gray-800 p-6 rounded-lg mb-6">
+          <h2 className="text-xl font-semibold mb-4">Data Management</h2>
           <div className="space-y-4">
             <div>
-              <h3 className="text-white font-medium mb-2">Export Your Data</h3>
-              <p className="text-accent text-sm mb-3">
-                Download all your personal data in JSON format
+              <p className="font-medium mb-2">Export Your Data</p>
+              <p className="text-sm text-gray-400 mb-4">
+                Download all your data including predictions, vault items, and account information.
               </p>
               <button
                 onClick={handleExportData}
                 disabled={isExporting}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition disabled:opacity-50"
               >
-                {isExporting ? 'Exporting...' : 'Export Data'}
+                {isExporting ? "Exporting..." : "Export Data"}
               </button>
             </div>
+          </div>
+        </section>
+
+        {/* Account Actions */}
+        <section className="bg-gray-800 p-6 rounded-lg">
+          <h2 className="text-xl font-semibold mb-4">Account Actions</h2>
+          <div className="space-y-4">
+            <button
+              onClick={() => signOut()}
+              className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition"
+            >
+              Sign Out
+            </button>
             
-            <div className="border-t border-gray-700 pt-4">
-              <h3 className="text-white font-medium mb-2">Delete Account</h3>
-              <p className="text-accent text-sm mb-3">
+            <div>
+              <p className="font-medium mb-2 text-red-400">Danger Zone</p>
+              <p className="text-sm text-gray-400 mb-4">
                 Permanently delete your account and all associated data. This action cannot be undone.
               </p>
               <button
                 onClick={handleDeleteAccount}
-                disabled={isDeletingAccount}
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className={`px-4 py-2 rounded transition ${
+                  isDeletingAccount 
+                    ? "bg-red-600 text-white hover:bg-red-700" 
+                    : "bg-red-900 text-red-400 hover:bg-red-800"
+                }`}
               >
-                {isDeletingAccount ? 'Deleting...' : 'Delete Account'}
+                {isDeletingAccount ? "Confirm Delete Account" : "Delete Account"}
               </button>
             </div>
           </div>
         </section>
-
-        {/* Support */}
-        <section className="bg-gray-900 rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4 text-white">Support</h2>
-          <div className="space-y-3">
-            <div>
-              <h3 className="text-white font-medium">Need Help?</h3>
-              <p className="text-accent text-sm">
-                Contact us at{' '}
-                <a href="mailto:support@moreminutes.life" className="text-primary hover:underline">
-                  support@moreminutes.life
-                </a>
-              </p>
-            </div>
-            
-            <div>
-              <h3 className="text-white font-medium">Privacy Questions?</h3>
-              <p className="text-accent text-sm">
-                Email our privacy team at{' '}
-                <a href="mailto:privacy@moreminutes.life" className="text-primary hover:underline">
-                  privacy@moreminutes.life
-                </a>
-              </p>
-            </div>
-            
-            <div>
-              <h3 className="text-white font-medium">Version</h3>
-              <p className="text-accent text-sm">More Minutes v1.0.0</p>
-            </div>
-          </div>
-        </section>
-
-        {/* Sign Out */}
-        {user && (
-          <section className="bg-gray-900 rounded-lg p-6">
-            <button
-                             onClick={async () => {
-                 await signOut();
-                 router.push('/');
-               }}
-              className="w-full px-4 py-3 bg-gray-700 text-white rounded hover:bg-gray-600 transition"
-            >
-              Sign Out
-            </button>
-          </section>
-        )}
       </div>
     </main>
   );

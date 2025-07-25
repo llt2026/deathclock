@@ -1,12 +1,17 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useAuthStore } from "../../store/auth";
+import { savePrediction } from "../../lib/api";
+import { trackEvent } from "../../lib/analytics";
 
 export default function ResultPage() {
   const [prediction, setPrediction] = useState<any>(null);
   const [timeLeft, setTimeLeft] = useState("");
   const [loading, setLoading] = useState(true);
+  const [savingPrediction, setSavingPrediction] = useState(false);
   const router = useRouter();
+  const { user } = useAuthStore();
 
   useEffect(() => {
     // 从 localStorage 读取输入数据
@@ -29,12 +34,52 @@ export default function ResultPage() {
     const predictedDeathDate = new Date();
     predictedDeathDate.setFullYear(predictedDeathDate.getFullYear() + remainingYears);
     
-    setPrediction({
+    const predictionData = {
       deathDate: predictedDeathDate,
       remainingYears: remainingYears.toFixed(1),
+      baseRemainingYears: remainingYears,
+      inputData: { dob, sex, ageYears },
+    };
+    
+    setPrediction(predictionData);
+    
+    // 跟踪事件
+    trackEvent('ViewResult', {
+      birthYear: dobDate.getFullYear(),
+      baseDaysLeft: Math.floor(remainingYears * 365.25),
+      sex: sex,
     });
+    
     setLoading(false);
   }, [router]);
+
+  // 保存预测结果到数据库
+  useEffect(() => {
+    if (!prediction || !user || savingPrediction) return;
+
+    const savePredictionToDb = async () => {
+      setSavingPrediction(true);
+      try {
+        const predictionData = {
+          user_id: user.id,
+          predicted_dod: prediction.deathDate.toISOString().split('T')[0],
+          base_remaining_years: prediction.baseRemainingYears,
+          factors: prediction.inputData,
+        };
+
+        const result = await savePrediction(predictionData);
+        if (!result.success) {
+          console.error('Failed to save prediction:', result.error);
+        }
+      } catch (error) {
+        console.error('Error saving prediction:', error);
+      } finally {
+        setSavingPrediction(false);
+      }
+    };
+
+    savePredictionToDb();
+  }, [prediction, user, savingPrediction]);
 
   useEffect(() => {
     if (!prediction) return;
@@ -78,6 +123,9 @@ export default function ResultPage() {
         <p className="text-accent mb-4">
           Based on actuarial data and your inputs
         </p>
+        {savingPrediction && (
+          <p className="text-xs text-gray-500">Saving prediction...</p>
+        )}
       </div>
 
       <div className="text-center">

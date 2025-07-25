@@ -1,8 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
 
-// 使用测试项目配置
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://cjswqhghqwsxnkcgwdrh.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqc3dxaGdocXdzeG5rY2d3ZHJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc3OTA4NDIsImV4cCI6MjA1MzM2Njg0Mn0.uCoMBXoFZV3_M8sXULOZwdq-3VIq8KbWWQP0RpKsI9w';
+// 使用 Vercel 环境变量，构建时提供默认值
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder_key';
+
+// 运行时检查环境变量
+const isProduction = process.env.NODE_ENV === 'production';
+const hasRealConfig = supabaseUrl !== 'https://placeholder.supabase.co' && supabaseAnonKey !== 'placeholder_key';
+
+if (isProduction && !hasRealConfig) {
+  console.error('Missing Supabase environment variables in production. Please check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.');
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
