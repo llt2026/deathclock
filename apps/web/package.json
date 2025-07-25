@@ -17,6 +17,11 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-hot-toast": "^2.5.2",
+    "drizzle-orm": "^0.44.3",
+    "eslint": "^9.31.0",
+    "@typescript-eslint/parser": "^8.38.0",
+    "@typescript-eslint/eslint-plugin": "^8.38.0",
+    "eslint-config-next": "^15.4.4",
     "zustand": "^5.0.6"
   },
   "devDependencies": {
