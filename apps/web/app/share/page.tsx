@@ -2,12 +2,19 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { trackClickShare, trackShareSuccess } from "../../lib/analytics";
+import Image from "next/image";
+
+interface Prediction {
+  deathDate: string | Date;
+  remainingYears: string;
+  currentAge?: number;
+}
 
 export default function SharePage() {
   const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [prediction, setPrediction] = useState<any>(null);
+  const [prediction, setPrediction] = useState<Prediction | null>(null);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -179,10 +186,13 @@ export default function SharePage() {
         {/* 预览区域 */}
         <div className="bg-gray-900 rounded-lg p-8 text-center mb-6">
           {generatedImageUrl ? (
-            <img 
+            <Image 
               src={generatedImageUrl} 
               alt="Generated share image" 
+              width={512}
+              height={512}
               className="max-w-sm mx-auto rounded-lg shadow-lg"
+              unoptimized
             />
           ) : (
             <div className="aspect-square max-w-sm mx-auto bg-gradient-to-br from-primary/20 to-success/20 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-600">

@@ -78,7 +78,7 @@ class ToastManager {
   }
 
   // 网络错误处理
-  networkError(error?: any) {
+  networkError() {
     if (!navigator.onLine) {
       return this.error("You're offline. Results will be saved locally.", {
         persistent: true,

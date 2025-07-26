@@ -1,7 +1,6 @@
 // API 基础配置
-const API_BASE = '';
 
-interface ApiResponse<T = any> {
+interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -23,7 +22,7 @@ export async function syncUser(userData: {
       body: JSON.stringify(userData),
     });
     return await response.json();
-  } catch (error) {
+  } catch {
     return { success: false, error: 'Network error' };
   }
 }
@@ -34,7 +33,7 @@ export async function savePrediction(predictionData: {
   predicted_dod: string;
   base_remaining_years: number;
   adjusted_years?: number;
-  factors?: any;
+  factors?: Record<string, unknown>;
 }): Promise<ApiResponse> {
   try {
     const response = await fetch('/api/predictions/save', {
@@ -43,7 +42,7 @@ export async function savePrediction(predictionData: {
       body: JSON.stringify(predictionData),
     });
     return await response.json();
-  } catch (error) {
+  } catch {
     return { success: false, error: 'Network error' };
   }
 }
@@ -53,7 +52,7 @@ export async function getUserProfile(userId: string): Promise<ApiResponse> {
   try {
     const response = await fetch(`/api/users/profile?userId=${userId}`);
     return await response.json();
-  } catch (error) {
+  } catch {
     return { success: false, error: 'Network error' };
   }
 }
@@ -71,7 +70,7 @@ export async function updateUserProfile(userId: string, profileData: {
       body: JSON.stringify(profileData),
     });
     return await response.json();
-  } catch (error) {
+  } catch {
     return { success: false, error: 'Network error' };
   }
 }
@@ -81,7 +80,7 @@ export async function getSubscriptionStatus(userId: string): Promise<ApiResponse
   try {
     const response = await fetch(`/api/subscriptions/status?userId=${userId}`);
     return await response.json();
-  } catch (error) {
+  } catch {
     return { success: false, error: 'Network error' };
   }
 }
@@ -94,7 +93,7 @@ export async function uploadVaultFile(formData: FormData): Promise<ApiResponse> 
       body: formData,
     });
     return await response.json();
-  } catch (error) {
+  } catch {
     return { success: false, error: 'Network error' };
   }
 }
@@ -104,7 +103,7 @@ export async function getVaultList(userId: string): Promise<ApiResponse> {
   try {
     const response = await fetch(`/api/vault/list?userId=${userId}`);
     return await response.json();
-  } catch (error) {
+  } catch {
     return { success: false, error: 'Network error' };
   }
 }
@@ -114,7 +113,7 @@ export async function getVaultDownloadUrl(vaultId: string, userId: string): Prom
   try {
     const response = await fetch(`/api/vault/download?vaultId=${vaultId}&userId=${userId}`);
     return await response.json();
-  } catch (error) {
+  } catch {
     return { success: false, error: 'Network error' };
   }
 }
@@ -127,7 +126,7 @@ export async function exportUserData(userId: string): Promise<Blob | null> {
       return await response.blob();
     }
     return null;
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -141,7 +140,7 @@ export async function sendMagicLink(email: string, magicLink: string): Promise<A
       body: JSON.stringify({ email, magicLink }),
     });
     return await response.json();
-  } catch (error) {
+  } catch {
     return { success: false, error: 'Network error' };
   }
 } 

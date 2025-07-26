@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "../../store/auth";
 import { getVaultList, getVaultDownloadUrl } from "../../lib/api";
@@ -22,7 +22,30 @@ export default function VaultDashboard() {
   const [showPinSetup, setShowPinSetup] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const router = useRouter();
-  const { user, session } = useAuthStore();
+  const { user } = useAuthStore();
+
+  const loadVaultItems = useCallback(async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const result = await getVaultList(user.id);
+      if (result.success && Array.isArray(result.data)) {
+        setVaultItems(result.data as VaultItem[]);
+      } else if (!result.success) {
+        toast.error("Failed to load vault items");
+      } else {
+        setVaultItems([]);
+      }
+    } catch (error) {
+      console.error("Error loading vault items:", error);
+      toast.error("Error loading vault items");
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
 
   useEffect(() => {
     // 检查是否需要设置 PIN
@@ -31,28 +54,7 @@ export default function VaultDashboard() {
     }
     
     loadVaultItems();
-  }, [user]);
-
-  const loadVaultItems = async () => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const result = await getVaultList(user.id);
-      if (result.success) {
-        setVaultItems(result.data || []);
-      } else {
-        toast.error("Failed to load vault items");
-      }
-    } catch (error) {
-      console.error("Error loading vault items:", error);
-      toast.error("Error loading vault items");
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [user, loadVaultItems]);
 
   const handleDownload = async (item: VaultItem) => {
     if (!user) return;
@@ -60,11 +62,17 @@ export default function VaultDashboard() {
     setDownloadingId(item.id);
     try {
       const result = await getVaultDownloadUrl(item.id, user.id);
-      if (result.success && result.data?.downloadUrl) {
+      if (
+        result.success &&
+        typeof result.data === 'object' &&
+        result.data !== null &&
+        'downloadUrl' in result.data
+      ) {
         // 创建下载链接
         const link = document.createElement('a');
-        link.href = result.data.downloadUrl;
-        link.download = result.data.fileName || 'vault-file';
+        const data = result.data as { downloadUrl: string; fileName?: string };
+        link.href = data.downloadUrl;
+        link.download = data.fileName || 'vault-file';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -107,7 +115,7 @@ export default function VaultDashboard() {
         <div className="text-center">
           <h1 className="text-3xl font-bold mb-4">Legacy Vault 🔒</h1>
           <p className="text-gray-300 mb-6">
-            Securely store messages, videos, and important information to be delivered after you're gone.
+            Securely store messages, videos, and important information to be delivered after you&apos;re gone.
           </p>
           <button
             onClick={() => router.push("/auth/request")}

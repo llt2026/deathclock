@@ -11,12 +11,12 @@ export enum ErrorType {
 export interface AppError {
   type: ErrorType;
   message: string;
-  debugInfo?: any;
+  debugInfo?: unknown;
   retry?: () => void;
 }
 
 // 简化的错误处理函数
-export function handleError(type: ErrorType, message: string, debugInfo?: any, retry?: () => void) {
+export function handleError(type: ErrorType, message: string, debugInfo?: unknown, retry?: () => void) {
   console.error(`[${type}]`, message, debugInfo);
   
   // 简单的 alert 处理

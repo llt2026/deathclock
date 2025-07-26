@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "../../store/auth";
 import { getUserProfile, updateUserProfile, exportUserData, getSubscriptionStatus } from "../../lib/api";
@@ -25,7 +25,7 @@ interface SubscriptionInfo {
 export default function SettingsScreen() {
   const router = useRouter();
   const { user, signOut } = useAuthStore();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [, setProfile] = useState<UserProfile | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
@@ -40,6 +40,36 @@ export default function SettingsScreen() {
   const [birthDate, setBirthDate] = useState("");
   const [sex, setSex] = useState<'male' | 'female' | ''>("");
 
+  const loadUserProfile = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      const result = await getUserProfile(user.id);
+      if (result.success && result.data) {
+        const profileData = result.data;
+        // set profile locally if needed (currently omitted)
+        setDisplayName((profileData as { displayName?: string }).displayName ?? "");
+        setBirthDate((profileData as { dob?: string }).dob ?? "");
+        setSex((profileData as { sex?: 'male' | 'female' }).sex ?? "");
+      }
+    } catch (error) {
+      console.error("Error loading profile:", error);
+    }
+  }, [user]);
+
+  const loadSubscriptionInfo = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      const result = await getSubscriptionStatus(user.id);
+      if (result.success && typeof result.data === 'object' && result.data !== null && 'subscription' in result.data) {
+        setSubscription((result.data as { subscription: SubscriptionInfo }).subscription);
+      }
+    } catch (error) {
+      console.error("Error loading subscription:", error);
+    }
+  }, [user]);
+
   useEffect(() => {
     setIsClient(true);
     if (typeof window !== 'undefined') {
@@ -51,37 +81,7 @@ export default function SettingsScreen() {
       loadUserProfile();
       loadSubscriptionInfo();
     }
-  }, [user]);
-
-  const loadUserProfile = async () => {
-    if (!user) return;
-    
-    try {
-      const result = await getUserProfile(user.id);
-      if (result.success && result.data) {
-        const profileData = result.data;
-        setProfile(profileData);
-        setDisplayName(profileData.displayName || "");
-        setBirthDate(profileData.dob || "");
-        setSex(profileData.sex || "");
-      }
-    } catch (error) {
-      console.error("Error loading profile:", error);
-    }
-  };
-
-  const loadSubscriptionInfo = async () => {
-    if (!user) return;
-    
-    try {
-      const result = await getSubscriptionStatus(user.id);
-      if (result.success && result.data) {
-        setSubscription(result.data.subscription);
-      }
-    } catch (error) {
-      console.error("Error loading subscription:", error);
-    }
-  };
+  }, [user, loadUserProfile, loadSubscriptionInfo]);
 
   const handleSaveProfile = async () => {
     if (!user || !editingProfile) return;

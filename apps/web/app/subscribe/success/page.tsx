@@ -57,13 +57,13 @@ export default function SubscribeSuccessPage() {
             Welcome to Plus!
           </h1>
           <p className="text-xl text-accent">
-            Your subscription is now active. You've unlocked powerful new features to live more intentionally.
+            Your subscription is now active. You&apos;ve unlocked powerful new features to live more intentionally.
           </p>
         </div>
 
         {/* Features Unlocked */}
         <div className="bg-gray-800 rounded-lg p-6 mb-8">
-          <h2 className="text-2xl font-semibold mb-6">What You've Unlocked</h2>
+                          <h2 className="text-2xl font-semibold mb-6">What You&apos;ve Unlocked</h2>
           
           <div className="grid md:grid-cols-2 gap-4 text-left">
             <div className="flex items-start gap-3">
@@ -102,7 +102,7 @@ export default function SubscribeSuccessPage() {
 
         {/* Next Steps */}
         <div className="mb-8">
-          <h2 className="text-2xl font-semibold mb-6">What's Next?</h2>
+          <h2 className="text-2xl font-semibold mb-6">What&apos;s Next?</h2>
           
           <div className="grid md:grid-cols-3 gap-4">
             <button
@@ -137,7 +137,7 @@ export default function SubscribeSuccessPage() {
         {/* Support Info */}
         <div className="bg-gray-900 rounded-lg p-4 mb-6">
           <p className="text-sm text-accent mb-2">
-            <strong>Need help?</strong> We're here for you.
+            <strong>Need help?</strong> We&apos;re here for you.
           </p>
           <p className="text-xs text-gray-400">
             Contact us at{" "}

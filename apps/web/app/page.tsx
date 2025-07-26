@@ -104,7 +104,7 @@ export default function LandingPage() {
           <div className="text-center mb-16">
             <h2 className="text-4xl font-display mb-4">Everything You Need to Live Fully</h2>
             <p className="text-xl text-accent max-w-2xl mx-auto">
-              More than just a countdown. It's your companion for meaningful living.
+              More than just a countdown. It&apos;s your companion for meaningful living.
             </p>
           </div>
 
@@ -137,7 +137,7 @@ export default function LandingPage() {
               <div className="text-6xl mb-4">🗃️</div>
               <h3 className="text-xl font-semibold mb-3">Legacy Vault</h3>
               <p className="text-accent">
-                Secure, encrypted digital legacy storage. Your final messages, delivered when you're gone.
+                Secure, encrypted digital legacy storage. Your final messages, delivered when you&apos;re gone.
               </p>
             </div>
 
@@ -169,7 +169,7 @@ export default function LandingPage() {
           </div>
 
           <div className="bg-gray-800 rounded-lg p-8 text-center min-h-[200px] flex flex-col justify-center">
-            <div className="text-2xl text-primary mb-4">"</div>
+            <div className="text-2xl text-primary mb-4">&quot;</div>
             <blockquote className="text-lg mb-4 text-accent">
               {testimonials[currentTestimonial].quote}
             </blockquote>
@@ -200,7 +200,7 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl font-display mb-4">Your Time Starts Now</h2>
           <p className="text-xl text-accent mb-8 max-w-2xl mx-auto">
-            Don't wait for tomorrow. Start living more intentionally today. 
+            Don&apos;t wait for tomorrow. Start living more intentionally today. 
             Your future self will thank you.
           </p>
           

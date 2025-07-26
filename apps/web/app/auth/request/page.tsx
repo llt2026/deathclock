@@ -37,7 +37,7 @@ export default function AuthRequestPage() {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-2">Sign in to More Minutes</h1>
           <p className="text-accent">
-            We'll send you a secure magic link to access your account
+            We&apos;ll send you a secure magic link to access your account
           </p>
         </div>
 

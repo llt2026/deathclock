@@ -11,7 +11,7 @@ export default async function handler(request: Request): Promise<Response> {
 
   try {
     const url = new URL(request.url);
-    const userId = url.searchParams.get('userId');
+    const userId = url.searchParams.get("userId");
 
     if (!userId) {
       return new Response("Missing userId parameter", { status: 400 });
@@ -21,19 +21,17 @@ export default async function handler(request: Request): Promise<Response> {
     const items = await db
       .select()
       .from(legacyVault)
-      .where(eq(legacyVault.userId, userId))
-      .orderBy(legacyVault.createdAt);
+      .where(eq(legacyVault.userId, userId));
 
-    return new Response(JSON.stringify({ items }), {
-      status: 200,
-      headers: { "content-type": "application/json" },
-    });
-
+    return new Response(
+      JSON.stringify({ success: true, data: items }),
+      { status: 200, headers: { "content-type": "application/json" } }
+    );
   } catch (error) {
     console.error("Vault list error:", error);
-    return new Response(JSON.stringify({ error: "Failed to fetch vault items" }), {
-      status: 500,
-      headers: { "content-type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: "Failed to load vault list", details: (error as Error).message }),
+      { status: 500, headers: { "content-type": "application/json" } }
+    );
   }
 } 

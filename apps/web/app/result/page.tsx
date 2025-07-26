@@ -5,12 +5,24 @@ import { useAuthStore } from "../../store/auth";
 import { calculateLifeExpectancy } from "@/packages/core/lifeCalc";
 import { trackEvent, trackViewResult } from "../../lib/analytics";
 
+interface Prediction {
+  deathDate: string | Date;
+  remainingYears: string;
+  baseRemainingYears: number;
+  adjustedYears?: number;
+  currentAge: number;
+  factors?: {
+    baseMortalityRate?: number;
+    gompertzAdjustment?: number;
+  };
+}
+
 export default function ResultPage() {
   const { getAppUser } = useAuthStore();
   const user = getAppUser();
   const router = useRouter();
 
-  const [prediction, setPrediction] = useState<any>(null);
+  const [prediction, setPrediction] = useState<Prediction | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -52,7 +64,7 @@ export default function ResultPage() {
         riskFactors,
       });
 
-      const predictionData = {
+      const predictionData: Prediction = {
         deathDate: lifeCalcResult.predictedDeathDate,
         remainingYears: lifeCalcResult.baseRemainingYears.toFixed(1),
         baseRemainingYears: lifeCalcResult.baseRemainingYears,
@@ -172,13 +184,17 @@ export default function ResultPage() {
 
         <div className="mt-8 text-xs text-gray-500">
           <p>⚠️ For entertainment only, not medical advice.</p>
-          <p>"Count less, live more." - Remember, this is just a reminder to cherish every moment.</p>
+          <p>&quot;Count less, live more.&quot; - Remember, this is just a reminder to cherish every moment.</p>
           {prediction.factors && (
             <details className="mt-4 text-left">
               <summary className="cursor-pointer">Algorithm Details</summary>
               <div className="text-xs text-gray-600 mt-2 bg-gray-800 p-2 rounded">
-                <p>Base mortality rate: {(prediction.factors.baseMortalityRate * 100).toFixed(4)}%</p>
-                <p>Gompertz adjustment: {(prediction.factors.gompertzAdjustment * 100).toFixed(4)}%</p>
+                <p>
+                  Base mortality rate: {((prediction.factors?.baseMortalityRate ?? 0) * 100).toFixed(4)}%
+                </p>
+                <p>
+                  Gompertz adjustment: {((prediction.factors?.gompertzAdjustment ?? 0) * 100).toFixed(4)}%
+                </p>
                 <p>Data source: SSA 2022 Period Life Table</p>
               </div>
             </details>

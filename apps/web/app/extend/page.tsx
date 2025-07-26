@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { simulateLongevityNudge, calculateLifeExpectancy } from "@/packages/core/lifeCalc";
 import { trackEvent, trackNudgeComplete } from "../../lib/analytics";
 import { useAuthStore } from "../../store/auth";
+import type { LifePrediction } from "@/packages/core/lifeCalc";
 
 const LONGEVITY_TIPS = [
   { action: "Walk 10,000 steps daily", improvement: 1.02, description: "Improve cardiovascular health", category: "exercise" },
@@ -22,15 +23,15 @@ export default function ExtendPage() {
   const router = useRouter();
   
   const [selectedTips, setSelectedTips] = useState<number[]>([]);
-  const [originalPrediction, setOriginalPrediction] = useState<any>(null);
-  const [adjustedPrediction, setAdjustedPrediction] = useState<any>(null);
+  const [originalPrediction, setOriginalPrediction] = useState<LifePrediction | null>(null);
+  const [adjustedPrediction, setAdjustedPrediction] = useState<(LifePrediction & { daysAdded: number; improvements: string[] }) | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
 
   useEffect(() => {
     // 获取原始预测或重新计算
     const stored = localStorage.getItem('lastPredictionResult');
     if (stored) {
-      const prediction = JSON.parse(stored);
+      const prediction = JSON.parse(stored) as LifePrediction;
       setOriginalPrediction(prediction);
     } else if (user?.dob && user?.sex) {
       // 重新计算预测

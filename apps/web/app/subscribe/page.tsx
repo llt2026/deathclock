@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "../../store/auth";
 import { trackSubscriptionStart } from "../../lib/analytics";
 import { handleError, ErrorType } from "../../lib/error-handler";
+import type { ReactPayPalScriptOptions } from "@paypal/react-paypal-js";
+
+// Local minimal OnApprove data type (subscription flow)
+type PayPalApproveData = { subscriptionID?: string | null };
 
 const ENV = process.env.NODE_ENV === 'production' ? "live" : "sandbox";
 const CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "";
@@ -30,7 +34,7 @@ export default function SubscribePage() {
   // 调试信息
   console.log("PayPal Config:", { ENV, CLIENT_ID: CLIENT_ID.substring(0, 10) + "...", currentPlanId, customId });
 
-  const onApprove = async (data: any) => {
+  const onApprove = async (data: PayPalApproveData) => {
     try {
       setIsProcessing(true);
       
@@ -46,14 +50,14 @@ export default function SubscribePage() {
       handleError(
         ErrorType.SUBSCRIPTION_FAILED,
         "Failed to process subscription",
-        { debug_id: data.subscriptionID, error }
+        { debug_id: data.subscriptionID ?? undefined, error }
       );
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const onError = (err: any) => {
+  const onError = (err: unknown) => {
     console.error("PayPal error:", err);
     setError("Payment failed. Please try again.");
     
@@ -162,12 +166,12 @@ export default function SubscribePage() {
 
           {CLIENT_ID ? (
             <PayPalScriptProvider 
-              options={{ 
+              options={{
                 clientId: CLIENT_ID,
-                currency: "USD", 
-                intent: "subscription", 
-                vault: true 
-              } as any}
+                currency: "USD",
+                intent: "subscription",
+                vault: true,
+              } as ReactPayPalScriptOptions}
             >
               <PayPalButtons
                 style={{ layout: "vertical", shape: "rect", color: "gold" }}

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 interface AnalyticsData {
@@ -53,7 +53,7 @@ export default function AdminAnalyticsPage() {
       } else {
         setError("Invalid admin token");
       }
-    } catch (err) {
+    } catch {
       setError("Login failed");
     }
   };
@@ -72,7 +72,7 @@ export default function AdminAnalyticsPage() {
       } else {
         setError("Failed to load analytics data");
       }
-    } catch (err) {
+    } catch {
       setError("Error loading analytics");
     } finally {
       setLoading(false);
@@ -297,7 +297,7 @@ function TrendChart({
     <div className="bg-gray-800 p-6 rounded-lg">
       <h3 className="text-lg font-semibold mb-4">{title}</h3>
       <div className="space-y-2">
-        {data.slice(-7).map((item, index) => (
+        {data.slice(-7).map((item) => (
           <div key={item.date} className="flex items-center justify-between">
             <span className="text-sm text-gray-400">
               {new Date(item.date).toLocaleDateString()}

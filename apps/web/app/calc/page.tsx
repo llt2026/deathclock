@@ -238,7 +238,7 @@ export default function CalcPage() {
                   onChange={() => handleRiskChange('stress')}
                   className="mr-3 text-primary focus:ring-primary"
                 />
-                <span className="text-sm">I'm often stressed</span>
+                <span className="text-sm">I&apos;m often stressed</span>
               </label>
             </div>
           </div>

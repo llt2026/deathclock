@@ -24,7 +24,7 @@ export default function LegalPage() {
           <div className="space-y-4 text-gray-300">
             <h3 className="text-lg font-medium text-white">1. Acceptance of Terms</h3>
             <p>
-              By accessing and using More Minutes ("the Service"), you accept and agree to be bound by the terms and provision of this agreement.
+              By accessing and using More Minutes (&quot;the Service&quot;), you accept and agree to be bound by the terms and provision of this agreement.
             </p>
             
             <h3 className="text-lg font-medium text-white">2. Description of Service</h3>

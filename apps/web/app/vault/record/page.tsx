@@ -21,8 +21,8 @@ export default function VaultRecordPage() {
   const [triggerDate, setTriggerDate] = useState("");
   const [inactivityPeriod, setInactivityPeriod] = useState("6 months");
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isSaving, setIsSaving] = useState(false);
+  const [, setUploadProgress] = useState(0);
+  const [, setIsSaving] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -198,18 +198,19 @@ export default function VaultRecordPage() {
       console.log(`Simulating Supabase upload for file: ${fileName}`);
       await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
       return { path: `simulated/${fileName}` }; // Simulate Supabase path
-    } catch (error: any) {
+    } catch (error: unknown) {
       handleError(
         ErrorType.UPLOAD_FAILED,
         "Failed to upload file to vault",
-        { fileName, fileSize: file.size, error: error.message },
+        { fileName, fileSize: file.size, error: error instanceof Error ? error.message : String(error) },
         () => uploadToSupabase(file, fileName)
       );
       throw error;
     }
   };
 
-  const handleSave = async () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _handleSave = async () => {
     if (!recordedBlob || !triggerDate) return;
 
     try {
@@ -218,7 +219,7 @@ export default function VaultRecordPage() {
       const fileName = `${user?.id}/${Date.now()}.${recordingType === 'audio' ? 'webm' : 'mp4'}`;
       
       // 加密文件（如果需要）
-      let fileToUpload = recordedBlob;
+      const fileToUpload = recordedBlob;
       // This part of the code was not provided in the edit_specification,
       // so it's commented out to avoid introducing new code.
       // if (pin) {
@@ -252,12 +253,12 @@ export default function VaultRecordPage() {
       toast.success("Vault item saved successfully! 🎉");
       router.push('/vault');
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       handleError(
         ErrorType.UPLOAD_FAILED,
         "Failed to save vault item",
-        error,
-        () => handleSave()
+        error instanceof Error ? error : error,
+        () => _handleSave()
       );
     } finally {
       setIsSaving(false);

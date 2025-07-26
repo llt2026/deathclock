@@ -14,7 +14,7 @@ export default function AboutScreen() {
           ← Back
         </button>
         <h1 className="text-3xl font-display mb-2">About More Minutes</h1>
-        <p className="text-accent">"Count less, live more."</p>
+        <p className="text-accent">&quot;Count less, live more.&quot;</p>
       </div>
 
       {/* Hero Section */}
@@ -29,7 +29,7 @@ export default function AboutScreen() {
 
       {/* Founder Story */}
       <section className="bg-gray-900 rounded-lg p-8 mb-8">
-        <h2 className="text-xl font-semibold mb-6">Founder's Story</h2>
+        <h2 className="text-xl font-semibold mb-6">Founder&apos;s Story</h2>
         
         <div className="grid md:grid-cols-3 gap-8">
           <div className="md:col-span-1">
@@ -45,20 +45,20 @@ export default function AboutScreen() {
           <div className="md:col-span-2 space-y-4 text-accent">
             <p>
               Born in Hangzhou, China, Evan studied Computer Science and Psychology. 
-              The sudden loss of a close friend in high school first introduced him to the concept of life's countdown.
+              The sudden loss of a close friend in high school first introduced him to the concept of life&apos;s countdown.
             </p>
             <p>
-              During his entrepreneurial journey in California, Evan discovered Stoicism's 
+              During his entrepreneurial journey in California, Evan discovered Stoicism&apos;s 
               <em> Memento Mori</em> philosophy and Eastern Five Elements wellness theory. 
               He realized that death anxiety could be transformed into a force for cherishing the present and self-improvement.
             </p>
             <p>
-              In 2025, he decided to use minimalist technology to turn "finite life" into a visible countdown timer, 
+              In 2025, he decided to use minimalist technology to turn &quot;finite life&quot; into a visible countdown timer, 
               adding digital legacy features to help everyone face the finish line with more peace and positivity.
             </p>
             <blockquote className="border-l-4 border-primary pl-4 italic">
-              "Technology should remind us of our humanity, not distract us from it. 
-              More Minutes is my attempt to use code to help people live more fully."
+              &quot;Technology should remind us of our humanity, not distract us from it. 
+              More Minutes is my attempt to use code to help people live more fully.&quot;
               <footer className="text-sm mt-2">— Evan Liang</footer>
             </blockquote>
           </div>
@@ -76,7 +76,7 @@ export default function AboutScreen() {
               Our Mission
             </h3>
             <p className="text-accent">
-              To help people live more intentionally by visualizing life's finite nature, 
+              To help people live more intentionally by visualizing life&apos;s finite nature, 
               transforming death anxiety into motivation for meaningful living and legacy building.
             </p>
           </div>
@@ -110,7 +110,7 @@ export default function AboutScreen() {
             </h3>
             <p className="text-accent">
               Our algorithms are based on peer-reviewed data from the U.S. Social Security Administration. 
-              We're transparent about our methods and limitations.
+              We&apos;re transparent about our methods and limitations.
             </p>
           </div>
         </div>
@@ -149,7 +149,7 @@ export default function AboutScreen() {
             <span className="text-2xl">🗃️</span>
             <div>
               <h3 className="font-semibold">Legacy Vault</h3>
-              <p className="text-accent">Secure, encrypted digital legacy storage that activates when you're gone.</p>
+              <p className="text-accent">Secure, encrypted digital legacy storage that activates when you&apos;re gone.</p>
             </div>
           </div>
         </div>

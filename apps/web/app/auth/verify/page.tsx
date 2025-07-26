@@ -35,7 +35,7 @@ export default function AuthVerifyPage() {
                 onClick={() => router.push("/auth/request")}
                 className="text-primary hover:underline"
               >
-                Didn't receive the email? Send another
+                Didn&apos;t receive the email? Send another
               </button>
             </div>
           </>
@@ -46,7 +46,7 @@ export default function AuthVerifyPage() {
             <div className="text-6xl mb-6">✅</div>
             <h1 className="text-2xl font-bold mb-4">Welcome back!</h1>
             <p className="text-accent mb-4">
-              You've been successfully signed in.
+              We&apos;ve sent a secure link to your email.
             </p>
             <p className="text-sm text-gray-400">
               Redirecting you to your dashboard...

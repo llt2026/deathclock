@@ -20,7 +20,7 @@ function SubscribeFailContent() {
         
         <div className="bg-red-900/20 border border-red-800 rounded-lg p-4 mb-6">
           <p className="text-red-200 mb-2">
-            We couldn't process your subscription. This could be due to:
+            We couldn&apos;t process your subscription. This could be due to:
           </p>
           <ul className="text-sm text-red-300 text-left space-y-1">
             <li>• Payment method declined</li>
