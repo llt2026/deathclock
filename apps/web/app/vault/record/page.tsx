@@ -6,6 +6,7 @@ import { uploadVaultFile } from "../../../lib/api";
 import { PinManager } from "../../../lib/crypto";
 import { toast } from "../../../lib/toast";
 import { handleError, ErrorType } from "../../../lib/error-handler";
+import { VaultCrypto } from "../../../lib/crypto";
 
 type RecordingType = "audio" | "video" | "text";
 type TriggerType = "fixed_date" | "inactivity";
@@ -227,9 +228,32 @@ export default function VaultRecordPage() {
       //   // fileToUpload = await encryptFile(recordedBlob, pin);
       // }
 
+      // 若有 PIN 则进行 AES-256-GCM 加密
+      let uploadBlob: Blob;
+      let encrypted = false;
+      const pin = PinManager.getPin();
+      if (pin) {
+        try {
+          const ab = await fileToUpload.arrayBuffer();
+          const { iv, ciphertext } = await VaultCrypto.encryptFile(ab, pin, user!.id);
+          const combined = new Uint8Array(iv.length + ciphertext.byteLength);
+          combined.set(iv, 0);
+          combined.set(new Uint8Array(ciphertext), iv.length);
+          uploadBlob = new Blob([combined], { type: "application/octet-stream" });
+          encrypted = true;
+        } catch (e) {
+          console.error("Encryption error", e);
+          toast.error("Encryption failed");
+          setIsSaving(false);
+          return;
+        }
+      } else {
+        uploadBlob = fileToUpload;
+      }
+
       // 上传到 Supabase
       const uploadResult = await uploadToSupabase(
-        new File([fileToUpload], fileName),
+        new File([uploadBlob], fileName),
         fileName
       );
 
@@ -242,7 +266,7 @@ export default function VaultRecordPage() {
           storagePath: uploadResult.path,
           trigger: 'fixed_date',
           triggerValue: triggerDate,
-          encrypted: false // Placeholder for actual encryption status
+          encrypted
         })
       });
 

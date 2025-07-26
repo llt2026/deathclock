@@ -31,7 +31,7 @@ export default function AdminDashboard() {
   }, []);
 
   const menuItems = [
-    { name: "用户管理", icon: "👥", path: "/users", description: "管理注册用户和权限" },
+    { name: "用户管理", icon: "👥", path: "/admin/users", description: "管理注册用户和权限" },
     { name: "订阅管理", icon: "💳", path: "/subscriptions", description: "查看和管理付费订阅" },
     { name: "遗嘱库管理", icon: "🗃️", path: "/vault", description: "监控Legacy Vault存储" },
     { name: "邮件日志", icon: "📧", path: "/emails", description: "查看邮件发送记录" },

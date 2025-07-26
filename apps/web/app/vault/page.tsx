@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "../../store/auth";
 import { getVaultList, getVaultDownloadUrl } from "../../lib/api";
 import { PinManager } from "../../lib/crypto";
+import { VaultCrypto } from "../../lib/crypto";
 import { toast } from "../../lib/toast";
 
 interface VaultItem {
@@ -14,6 +15,7 @@ interface VaultItem {
   triggerValue: string;
   createdAt: string;
   delivered: boolean;
+  encrypted?: boolean;
 }
 
 export default function VaultDashboard() {
@@ -68,16 +70,47 @@ export default function VaultDashboard() {
         result.data !== null &&
         'downloadUrl' in result.data
       ) {
-        // 创建下载链接
-        const link = document.createElement('a');
         const data = result.data as { downloadUrl: string; fileName?: string };
-        link.href = data.downloadUrl;
-        link.download = data.fileName || 'vault-file';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        toast.success("Download started");
+
+        if (item.encrypted) {
+          // 需要解密
+          const pin = PinManager.getPin();
+          if (!pin) {
+            toast.error("Please enter your PIN first");
+            setDownloadingId(null);
+            return;
+          }
+
+          const resp = await fetch(data.downloadUrl);
+          const buf = await resp.arrayBuffer();
+          const iv = new Uint8Array(buf.slice(0, 12));
+          const ciphertext = buf.slice(12);
+          try {
+            const clear = await VaultCrypto.decryptFile({ iv, ciphertext }, pin, user.id);
+            const mime = item.type === 'text' ? 'text/plain' : item.type === 'audio' ? 'audio/webm' : 'video/mp4';
+            const blob = new Blob([clear], { type: mime });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = data.fileName || 'vault-file';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            toast.success("File decrypted & downloaded");
+          } catch (e) {
+            console.error("Decrypt error", e);
+            toast.error("Decryption failed - wrong PIN?");
+          }
+        } else {
+          // 直接下载
+          const link = document.createElement('a');
+          link.href = data.downloadUrl;
+          link.download = data.fileName || 'vault-file';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          toast.success("Download started");
+        }
       } else {
         toast.error("Failed to generate download link");
       }

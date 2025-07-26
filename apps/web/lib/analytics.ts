@@ -1,8 +1,12 @@
 // TikTok Events API 集成
 declare global {
   interface Window {
-    // TikTok pixel global object
-    ttq: any;
+    ttq?: {
+      load: (id: string) => void;
+      page: () => void;
+      track: (event: string, props?: Record<string, unknown>) => void;
+    };
+    va?: (event: 'track', name: string, props?: Record<string, unknown>) => void;
   }
 }
 
@@ -21,11 +25,14 @@ class TikTokAnalytics {
     const script = document.createElement('script');
     script.async = true;
     script.src = 'https://analytics.tiktok.com/i18n/pixel/events.js';
-    
+
     script.onload = () => {
-      window.ttq = window.ttq || [];
-      (window.ttq as any)?.load?.(this.pixelId);
-      (window.ttq as any)?.page?.();
+      // 如果脚本定义 window.ttq 则初始化，否则创建占位数组
+      if (!window.ttq) {
+        window.ttq = [] as unknown as typeof window.ttq;
+      }
+      window.ttq?.load(this.pixelId);
+      window.ttq?.page();
       this.isInitialized = true;
     };
 
@@ -33,10 +40,10 @@ class TikTokAnalytics {
   }
 
   track(event: string, properties?: Record<string, unknown>) {
-    if (typeof window === 'undefined' || !(window.ttq as any)?.track) return;
+    if (typeof window === 'undefined' || !window.ttq?.track) return;
 
     try {
-      (window.ttq as any)?.track?.(event, properties);
+      window.ttq.track(event, properties);
     } catch (error) {
       console.error('TikTok tracking error:', error);
     }
@@ -95,10 +102,7 @@ export const tiktokAnalytics = new TikTokAnalytics(
 export function trackEvent(eventName: string, properties?: Record<string, unknown>) {
   // Vercel Analytics 事件跟踪
   if (typeof window !== 'undefined') {
-    const vaFn = (window as any).va as ((event: string, name: string, props?: Record<string, unknown>) => void) | undefined;
-    if (typeof vaFn === 'function') {
-      vaFn('track', eventName, properties);
-    }
+    window.va?.('track', eventName, properties);
   }
 
   // TikTok 事件跟踪
