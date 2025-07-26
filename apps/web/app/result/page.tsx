@@ -64,7 +64,7 @@ export default function ResultPage() {
       setPrediction(predictionData);
 
       // 埋点：查看结果
-      const birthYear = new Date(user.dob).getFullYear();
+      const birthYear = new Date(dob).getFullYear();
       const baseDaysLeft = Math.floor(lifeCalcResult.baseRemainingYears * 365.25);
       trackViewResult(birthYear, baseDaysLeft);
 
@@ -80,20 +80,8 @@ export default function ResultPage() {
 
     } catch (error) {
       console.error("Life calculation failed:", error);
-      // 回退到简化计算
-      const birthDate = new Date(user.dob);
-      const now = new Date();
-      const ageInYears = (now.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
-      const estimatedLifespan = user.sex === 'male' ? 76 : 81;
-      const remainingYears = Math.max(0, estimatedLifespan - ageInYears);
-      const deathDate = new Date(now.getTime() + remainingYears * 365.25 * 24 * 60 * 60 * 1000);
-
-      setPrediction({
-        deathDate,
-        remainingYears: remainingYears.toFixed(1),
-        currentAge: Math.floor(ageInYears),
-        fallback: true
-      });
+      alert("Calculation failed. Please try again.");
+      router.push("/calc");
     }
   }, [user, router]);
 
@@ -145,12 +133,6 @@ export default function ResultPage() {
         <h1 className="text-4xl font-display text-primary mb-8">
           Your Life Countdown
         </h1>
-
-        {prediction.fallback && (
-          <div className="bg-yellow-900/20 border border-yellow-600 rounded-lg p-4 mb-6">
-            <p className="text-yellow-400 text-sm">⚠️ Using simplified calculation</p>
-          </div>
-        )}
 
         <div className="bg-gray-800 rounded-lg p-6 mb-6">
           <p className="text-accent mb-2">Time remaining</p>
