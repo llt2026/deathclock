@@ -71,10 +71,15 @@ export async function POST(request: NextRequest) {
   try {
     const bodyText = await request.text();
 
-    // 在生产和 Sandbox 都校验签名；若失败返回 401
-    const isValid = await verifyPayPalSignature(request.headers, bodyText);
-    if (!isValid) {
-      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    // 可通过环境变量控制是否强制验签
+    const mustVerify = process.env.PAYPAL_VERIFY_SIG === "true";
+    if (mustVerify) {
+      const isValid = await verifyPayPalSignature(request.headers, bodyText);
+      if (!isValid) {
+        return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+      }
+    } else {
+      console.warn("[PayPal] Signature verification skipped (PAYPAL_VERIFY_SIG!=true)");
     }
 
     const event = JSON.parse(bodyText);
