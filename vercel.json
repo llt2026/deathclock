@@ -7,9 +7,17 @@
       "config": {
         "distDir": ".next"
       }
+    },
+    {
+      "src": "apps/api/**/*.ts",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "apps/api/$1.ts"
+    },
     {
       "src": "/(.*)",
       "dest": "apps/web/$1"
