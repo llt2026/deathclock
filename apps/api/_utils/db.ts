@@ -14,7 +14,12 @@ export function getDb(): NodePgDatabase {
     throw new Error("Database connection not configured. Please set DATABASE_URL environment variable.");
   }
   
-  const client = new Client({ connectionString });
+  const client = new Client({
+    connectionString,
+    ssl: {
+      rejectUnauthorized: false,
+    },
+  });
   
   client.connect().catch(error => {
     console.error("Database connection failed:", error);
