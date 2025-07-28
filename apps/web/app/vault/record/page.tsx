@@ -13,7 +13,7 @@ type TriggerType = "fixed_date" | "inactivity";
 
 export default function VaultRecordPage() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, isLoading } = useAuthStore();
   const [recordingType, setRecordingType] = useState<RecordingType>("audio");
   const [isRecording, setIsRecording] = useState(false);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
@@ -31,6 +31,8 @@ export default function VaultRecordPage() {
   const audioChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
+    if (isLoading) return; // 等待 auth 初始化完成
+
     if (!user) {
       router.push("/auth/request");
       return;
@@ -53,7 +55,7 @@ export default function VaultRecordPage() {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
     };
-  }, [user, router]);
+  }, [isLoading, user, router]);
 
   const startRecording = async () => {
     try {
