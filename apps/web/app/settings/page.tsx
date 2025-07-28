@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "../../store/auth";
 import { getUserProfile, updateUserProfile, exportUserData, getSubscriptionStatus } from "../../lib/api";
+import USDatePicker from "../../components/USDatePicker";
 import { toast } from "../../lib/toast";
 
 interface UserProfile {
@@ -226,13 +227,16 @@ export default function SettingsScreen() {
             
             <div>
               <label className="block text-sm font-medium mb-2">Birth Date</label>
-              <input
-                type="date"
+              <USDatePicker
                 value={birthDate}
-                onChange={(e) => setBirthDate(e.target.value)}
-                disabled={!editingProfile}
+                onChange={setBirthDate}
                 className="w-full p-3 bg-gray-700 border border-gray-600 rounded-md disabled:text-gray-400"
+                min="1900-01-01"
+                max={new Date().toISOString().split('T')[0]}
               />
+              {!editingProfile && (
+                <p className="text-xs text-accent mt-1">Edit to change your birth date</p>
+              )}
             </div>
             
             <div>
