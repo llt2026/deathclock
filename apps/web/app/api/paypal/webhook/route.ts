@@ -1,5 +1,3 @@
-"use server";
-
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { getDb } from "../../../../../api/_utils/db";
