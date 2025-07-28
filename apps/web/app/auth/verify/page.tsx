@@ -12,7 +12,7 @@ export default function AuthVerifyPage() {
     if (user) {
       setStatus("success");
       setTimeout(() => {
-        router.push("/");
+        router.push("/settings");
       }, 2000);
     }
   }, [user, router]);
@@ -49,7 +49,7 @@ export default function AuthVerifyPage() {
               We&apos;ve sent a secure link to your email.
             </p>
             <p className="text-sm text-gray-400">
-              Redirecting you to your dashboard...
+              Redirecting you to your settings...
             </p>
           </>
         )}
