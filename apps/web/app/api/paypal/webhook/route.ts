@@ -109,6 +109,7 @@ export async function POST(request: NextRequest) {
           .insert(subscriptions)
           .values({
             userId: customId,
+            paypalId: sub.id,
             tier: "Plus",
             renewAt: renewAtIso ? renewAtIso.split("T")[0] : undefined,
             platform: "paypal",
@@ -117,6 +118,7 @@ export async function POST(request: NextRequest) {
           .onConflictDoUpdate({
             target: subscriptions.userId,
             set: {
+              paypalId: sub.id,
               tier: "Plus",
               renewAt: renewAtIso ? renewAtIso.split("T")[0] : undefined,
               isActive: true,

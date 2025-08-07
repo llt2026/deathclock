@@ -38,6 +38,7 @@ export const legacyVault = pgTable("legacy_vault", {
 export const subscriptions = pgTable("subscriptions", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").references(() => users.id),
+  paypalId: text("paypal_id").unique(),
   tier: tierEnum("tier").notNull(),
   renewAt: date("renew_at"),
   platform: platformEnum("platform").default("paypal"),

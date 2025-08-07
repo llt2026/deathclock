@@ -1,0 +1,1 @@
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS paypal_id text UNIQUE; 
