@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { getDb } from "../../../../../api/_utils/db";
 import { subscriptions } from "../../../../../../packages/db/schema";
 import { eq } from "drizzle-orm";
+import { users } from "../../../../../../packages/db/schema";
 
 export const runtime = "nodejs"; // ensure Node runtime for crypto.verify
 
@@ -93,6 +94,14 @@ export async function POST(request: NextRequest) {
         const sub = event.resource;
         const customId = sub.custom_id as string | undefined;
         if (!customId) return NextResponse.json({ error: "Missing custom_id" }, { status: 400 });
+
+        // Ensure user row exists (may be guest checkout without prior sync)
+        try {
+          await db.insert(users).values({ id: customId, email: `${customId}@placeholder.local` } as any).onConflictDoNothing();
+        } catch (e) {
+          // ignore if schema mismatch or other error
+          console.warn("Insert user ignored", e);
+        }
 
         const renewAtIso: string | undefined = sub.billing_info?.next_billing_time;
 
