@@ -54,12 +54,14 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      subscription: {
-        status,
-        tier,
-        isActive,
-        renewAt,
-        platform: subscription.length > 0 ? subscription[0].platform : null,
+      data: {
+        subscription: {
+          status,
+          tier,
+          isActive,
+          renewAt,
+          platform: subscription.length > 0 ? subscription[0].platform : null,
+        }
       }
     });
 
