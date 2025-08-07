@@ -161,7 +161,9 @@ export function calculateLifeExpectancy(input: LifeInput): LifePrediction {
   // Calculate predicted death date
   const today = new Date();
   const predictedDeathDate = new Date(today);
-  predictedDeathDate.setFullYear(predictedDeathDate.getFullYear() + Math.floor(adjustedYears));
+  // Add the full years and remaining days
+  const totalDays = adjustedYears * 365.25;
+  predictedDeathDate.setTime(today.getTime() + (totalDays * 24 * 60 * 60 * 1000));
   
   return {
     predictedDeathDate,

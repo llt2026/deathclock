@@ -153,7 +153,11 @@ export default function ResultPage() {
             {getTimeLeft()}
           </div>
           <p className="text-sm text-gray-400 mb-2">
-            Estimated end: {new Date(prediction.deathDate).toLocaleDateString()}
+            Estimated end: {new Date(prediction.deathDate).toLocaleDateString('en-US', { 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}
           </p>
           <p className="text-xs text-gray-500">
             Remaining: ~{prediction.remainingYears} years | Current age: {prediction.currentAge}
@@ -161,15 +165,27 @@ export default function ResultPage() {
         </div>
 
         <div className="space-y-4">
-          <Link href="/extend" className="block w-full py-3 bg-success text-black font-semibold rounded-lg hover:bg-green-400 transition-colors text-center rounded-lg">
+          <Link 
+            href="/extend" 
+            className="block w-full py-3 bg-success text-black font-semibold rounded-lg hover:bg-green-400 transition-colors text-center cursor-pointer select-none"
+            style={{ touchAction: 'manipulation' }}
+          >
             + Try +30 Days
           </Link>
 
-          <Link href="/share" className="block w-full py-3 bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-600 transition-colors text-center rounded-lg">
+          <Link 
+            href="/share" 
+            className="block w-full py-3 bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-600 transition-colors text-center cursor-pointer select-none"
+            style={{ touchAction: 'manipulation' }}
+          >
             Share Result
           </Link>
 
-          <Link href="/vault" className="block w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-red-700 transition-colors text-center rounded-lg">
+          <Link 
+            href="/vault" 
+            className="block w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-red-700 transition-colors text-center cursor-pointer select-none"
+            style={{ touchAction: 'manipulation' }}
+          >
             Legacy Vault
           </Link>
         </div>
