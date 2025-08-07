@@ -41,7 +41,15 @@ export async function POST(request: NextRequest) {
     const timestamp = Date.now();
     const storagePath = `vault/${userId}/${timestamp}-${file.name}`;
 
-    // 上传到 Supabase Storage
+    // 确保 bucket 存在
+    const { data: _, error: bucketError } = await supabaseAdmin.storage.getBucket("vault");
+    if (bucketError) {
+      // bucket 不存在则尝试创建
+      await supabaseAdmin.storage.createBucket("vault", { public: false }).catch((err) => {
+        console.error("Bucket create error", err);
+      });
+    }
+
     const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
       .from("vault")
       .upload(storagePath, file, {
