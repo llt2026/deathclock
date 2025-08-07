@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     const storagePath = `vault/${userId}/${timestamp}-${file.name}`;
 
     // 确保 bucket 存在
-    const { data: _, error: bucketError } = await supabaseAdmin.storage.getBucket("vault");
+    const { error: bucketError } = await supabaseAdmin.storage.getBucket("vault");
     if (bucketError) {
       // bucket 不存在则尝试创建
       await supabaseAdmin.storage.createBucket("vault", { public: false }).catch((err) => {
