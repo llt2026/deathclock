@@ -3,6 +3,7 @@ import { Inter, Anton } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import "./globals.css";
 import ClientProviders from "./client-providers";
+import Header from "../components/Header";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const anton = Anton({ weight: "400", subsets: ["latin"], variable: "--font-anton" });
@@ -38,6 +39,7 @@ export default function RootLayout({
       </head>
       <body className="font-sans bg-dark text-white min-h-screen">
         <ClientProviders>
+          <Header />
           {children}
           <Toaster 
             position="top-center"

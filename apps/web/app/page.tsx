@@ -2,9 +2,11 @@
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { trackEvent } from "../lib/analytics";
+import { useAuthStore } from "../store/auth";
 
 export default function LandingPage() {
   const router = useRouter();
+  const { user } = useAuthStore();
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
 
   const testimonials = [
@@ -80,6 +82,14 @@ export default function LandingPage() {
             >
               Learn More
             </button>
+            {!user && (
+              <button
+                onClick={() => router.push("/auth/request")}
+                className="px-8 py-4 bg-transparent border-2 border-gray-600 hover:border-white text-white font-semibold rounded-lg transition-colors text-lg"
+              >
+                Sign In / Sign Up
+              </button>
+            )}
           </div>
 
           {/* Social Proof */}
