@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "../../store/auth";
 import { calculateLifeExpectancy } from "@/packages/core/lifeCalc";
 import { trackEvent, trackViewResult } from "../../lib/analytics";
-import Link from "next/link";
 
 interface Prediction {
   deathDate: string | Date;
@@ -44,6 +43,8 @@ export default function ResultPage() {
         const parsedData = JSON.parse(storedData);
         dob = parsedData.dob;
         sex = parsedData.sex;
+        // Create consistent userId for guest users based on their data
+        userId = `guest_${dob}_${sex}`;
       }
     }
     
@@ -117,6 +118,11 @@ export default function ResultPage() {
     const target = new Date(prediction.deathDate).getTime();
     const diff = target - now;
     
+    // Debug: log the dates to console
+    console.log("Current time:", new Date(now));
+    console.log("Death date:", new Date(target));
+    console.log("Difference (ms):", diff);
+    
     if (diff <= 0) return "Time's up!";
     
     const years = Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
@@ -165,29 +171,26 @@ export default function ResultPage() {
         </div>
 
         <div className="space-y-4">
-          <Link 
-            href="/extend" 
-            className="block w-full py-3 bg-success text-black font-semibold rounded-lg hover:bg-green-400 transition-colors text-center cursor-pointer select-none"
-            style={{ touchAction: 'manipulation' }}
+          <button
+            onClick={() => router.push("/extend")}
+            className="w-full py-3 bg-success text-black font-semibold rounded-lg hover:bg-green-400 transition-colors"
           >
             + Try +30 Days
-          </Link>
+          </button>
 
-          <Link 
-            href="/share" 
-            className="block w-full py-3 bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-600 transition-colors text-center cursor-pointer select-none"
-            style={{ touchAction: 'manipulation' }}
+          <button
+            onClick={() => router.push("/share")}
+            className="w-full py-3 bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-600 transition-colors"
           >
             Share Result
-          </Link>
+          </button>
 
-          <Link 
-            href="/vault" 
-            className="block w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-red-700 transition-colors text-center cursor-pointer select-none"
-            style={{ touchAction: 'manipulation' }}
+          <button
+            onClick={() => router.push("/vault")}
+            className="w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-red-700 transition-colors"
           >
             Legacy Vault
-          </Link>
+          </button>
         </div>
 
         <div className="mt-8 text-xs text-gray-500">
