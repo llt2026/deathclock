@@ -3,7 +3,6 @@ export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "../../../../../api/_utils/db";
 import { users } from "../../../../../../packages/db/schema";
-import { eq } from "drizzle-orm";
 
 interface SyncUserRequest {
   id: string;

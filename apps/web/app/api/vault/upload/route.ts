@@ -39,7 +39,6 @@ export async function POST(request: NextRequest) {
 
     // 生成唯一存储路径
     const timestamp = Date.now();
-    const fileExt = file.name.split(".").pop() || "bin";
     const storagePath = `vault/${userId}/${timestamp}-${file.name}`;
 
     // 上传到 Supabase Storage
