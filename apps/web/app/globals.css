@@ -60,4 +60,13 @@ html, body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--primary);
+}
+
+/* Ensure button-styled links don't show underlines */
+.no-underline {
+  text-decoration: none !important;
+}
+
+.no-underline:hover {
+  text-decoration: none !important;
 } 

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "../../store/auth";
 import { calculateLifeExpectancy } from "@/packages/core/lifeCalc";
@@ -24,8 +24,15 @@ export default function ResultPage() {
 
   const [prediction, setPrediction] = useState<Prediction | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const predictionRef = useRef<Prediction | null>(null);
 
   useEffect(() => {
+    // Only calculate once if we don't have a cached prediction
+    if (predictionRef.current) {
+      setPrediction(predictionRef.current);
+      return;
+    }
+
     // Get user data from auth store or localStorage
     let dob: string | undefined;
     let sex: 'male' | 'female' | undefined;
@@ -75,6 +82,8 @@ export default function ResultPage() {
         factors: lifeCalcResult.factors,
       };
 
+      // Cache the prediction
+      predictionRef.current = predictionData;
       setPrediction(predictionData);
 
       // 埋点：查看结果
@@ -117,11 +126,6 @@ export default function ResultPage() {
     const now = currentTime.getTime();
     const target = new Date(prediction.deathDate).getTime();
     const diff = target - now;
-    
-    // Debug: log the dates to console
-    console.log("Current time:", new Date(now));
-    console.log("Death date:", new Date(target));
-    console.log("Difference (ms):", diff);
     
     if (diff <= 0) return "Time's up!";
     
@@ -171,26 +175,26 @@ export default function ResultPage() {
         </div>
 
         <div className="space-y-4">
-          <button
-            onClick={() => router.push("/extend")}
-            className="w-full py-3 bg-success text-black font-semibold rounded-lg hover:bg-green-400 transition-colors"
+          <a
+            href="/extend"
+            className="block w-full py-3 bg-success text-black font-semibold rounded-lg hover:bg-green-400 transition-colors text-center no-underline"
           >
             + Try +30 Days
-          </button>
+          </a>
 
-          <button
-            onClick={() => router.push("/share")}
-            className="w-full py-3 bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-600 transition-colors"
+          <a
+            href="/share"
+            className="block w-full py-3 bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-600 transition-colors text-center no-underline"
           >
             Share Result
-          </button>
+          </a>
 
-          <button
-            onClick={() => router.push("/vault")}
-            className="w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-red-700 transition-colors"
+          <a
+            href="/vault"
+            className="block w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-red-700 transition-colors text-center no-underline"
           >
             Legacy Vault
-          </button>
+          </a>
         </div>
 
         <div className="mt-8 text-xs text-gray-500">
