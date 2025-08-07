@@ -87,8 +87,9 @@ export async function POST(request: NextRequest) {
     const db = getDb();
 
     switch (event.event_type) {
+      case "BILLING.SUBSCRIPTION.CREATED":
       case "BILLING.SUBSCRIPTION.ACTIVATED":
-      case "BILLING.SUBSCRIPTION.PAYMENT.COMPLETED": {
+      case "BILLING.SUBSCRIPTION.PAYMENT.COMPLETED": { // Treat created/activated/payment as active
         const sub = event.resource;
         const customId = sub.custom_id as string | undefined;
         if (!customId) return NextResponse.json({ error: "Missing custom_id" }, { status: 400 });
