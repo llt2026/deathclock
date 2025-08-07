@@ -161,22 +161,16 @@ export default function ResultPage() {
         </div>
 
         <div className="space-y-4">
-          <Link href="/extend" className="w-full inline-block">
-            <span className="block w-full py-3 bg-success text-black font-semibold rounded-lg hover:bg-green-400 transition-colors text-center">
-              + Try +30 Days
-            </span>
+          <Link href="/extend" className="block w-full py-3 bg-success text-black font-semibold rounded-lg hover:bg-green-400 transition-colors text-center rounded-lg">
+            + Try +30 Days
           </Link>
 
-          <Link href="/share" className="w-full inline-block">
-            <span className="block w-full py-3 bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-600 transition-colors text-center">
-              Share Result
-            </span>
+          <Link href="/share" className="block w-full py-3 bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-600 transition-colors text-center rounded-lg">
+            Share Result
           </Link>
 
-          <Link href="/vault" className="w-full inline-block">
-            <span className="block w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-red-700 transition-colors text-center">
-              Legacy Vault
-            </span>
+          <Link href="/vault" className="block w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-red-700 transition-colors text-center rounded-lg">
+            Legacy Vault
           </Link>
         </div>
 
