@@ -6,6 +6,7 @@ import { getVaultList, getVaultDownloadUrl } from "../../lib/api";
 import { PinManager } from "../../lib/crypto";
 import { VaultCrypto } from "../../lib/crypto";
 import { toast } from "../../lib/toast";
+import { getSubscriptionStatus } from "../../lib/api";
 
 interface VaultItem {
   id: string;
@@ -25,6 +26,7 @@ export default function VaultDashboard() {
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const router = useRouter();
   const { user } = useAuthStore();
+  const [subActive, setSubActive] = useState<boolean | null>(null);
 
   const loadVaultItems = useCallback(async () => {
     if (!user) {
@@ -55,8 +57,39 @@ export default function VaultDashboard() {
       setShowPinSetup(true);
     }
     
+    // 同时检查订阅状态
+    const checkSub = async () => {
+      if (!user) return;
+      const res = await getSubscriptionStatus(user.id);
+      if (res.success && res.data && typeof res.data === "object" && "subscription" in res.data) {
+        setSubActive((res.data as any).subscription.isActive);
+      } else {
+        setSubActive(false);
+      }
+    };
+
+    checkSub();
     loadVaultItems();
   }, [user, loadVaultItems]);
+
+  if (subActive === false) {
+    return (
+      <main className="flex flex-col items-center justify-center min-h-screen gap-6 px-4 text-center">
+        <div>
+          <h1 className="text-3xl font-bold mb-4">Legacy Vault 🔒</h1>
+          <p className="text-gray-300 mb-6 max-w-md">
+            Legacy Vault is available for Plus subscribers. Upgrade to unlock secure storage for your final messages and important documents.
+          </p>
+          <button
+            onClick={() => router.push("/subscribe")}
+            className="px-6 py-3 bg-primary text-white rounded-md hover:opacity-90 transition"
+          >
+            Upgrade to Plus
+          </button>
+        </div>
+      </main>
+    );
+  }
 
   const handleDownload = async (item: VaultItem) => {
     if (!user) return;

@@ -7,6 +7,7 @@ import { PinManager } from "../../../lib/crypto";
 import { toast } from "../../../lib/toast";
 import { handleError, ErrorType } from "../../../lib/error-handler";
 import { VaultCrypto } from "../../../lib/crypto";
+import USDatePicker from "../../../components/USDatePicker";
 
 type RecordingType = "audio" | "video" | "text";
 type TriggerType = "fixed_date" | "inactivity";
@@ -444,11 +445,10 @@ export default function VaultRecordPage() {
             {triggerType === "fixed_date" ? (
               <div>
                 <label className="block text-sm font-medium mb-2">Delivery Date</label>
-                <input
-                  type="date"
+                <USDatePicker
                   value={triggerDate}
-                  onChange={(e) => setTriggerDate(e.target.value)}
-                  className="p-3 bg-gray-800 border border-gray-600 rounded-lg"
+                  onChange={setTriggerDate}
+                  className="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg"
                   min={new Date().toISOString().split('T')[0]}
                 />
               </div>
