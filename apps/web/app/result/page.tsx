@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "../../store/auth";
 import { calculateLifeExpectancy } from "@/packages/core/lifeCalc";
 import { trackEvent, trackViewResult } from "../../lib/analytics";
+import Link from "next/link";
 
 interface Prediction {
   deathDate: string | Date;
@@ -160,26 +161,23 @@ export default function ResultPage() {
         </div>
 
         <div className="space-y-4">
-          <button
-            onClick={() => router.push("/extend")}
-            className="w-full py-3 bg-success text-black font-semibold rounded-lg hover:bg-green-400 transition-colors"
-          >
-            + Try +30 Days
-          </button>
+          <Link href="/extend" className="w-full inline-block">
+            <span className="block w-full py-3 bg-success text-black font-semibold rounded-lg hover:bg-green-400 transition-colors text-center">
+              + Try +30 Days
+            </span>
+          </Link>
 
-          <button
-            onClick={() => router.push("/share")}
-            className="w-full py-3 bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-600 transition-colors"
-          >
-            Share Result
-          </button>
+          <Link href="/share" className="w-full inline-block">
+            <span className="block w-full py-3 bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-600 transition-colors text-center">
+              Share Result
+            </span>
+          </Link>
 
-          <button
-            onClick={() => router.push("/vault")}
-            className="w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-red-700 transition-colors"
-          >
-            Legacy Vault
-          </button>
+          <Link href="/vault" className="w-full inline-block">
+            <span className="block w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-red-700 transition-colors text-center">
+              Legacy Vault
+            </span>
+          </Link>
         </div>
 
         <div className="mt-8 text-xs text-gray-500">
